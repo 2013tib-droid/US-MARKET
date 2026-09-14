@@ -185,7 +185,9 @@ harus menghasilkan tabel yang sama dengan run 05:00 WIB hari sebelumnya.
 
 | Keputusan | Pilihan | Alasan |
 |---|---|---|
-| Universe | S&P 1500 + NDX + watchlist, bukan "semua saham AS" | 1.500 vs 6.000: kualitas data & likuiditas. Yang di luar itu jarang layak untuk investor ritel dari Indonesia |
+| Universe | S&P 1500 + NDX + watchlist ≈ 1.550 emiten, bukan "semua saham AS" (disetujui 14 Sep 2026) | ≈ 1.550 vs ± 6.000: kualitas data & likuiditas. Yang di luar itu jarang layak untuk investor ritel dari Indonesia |
+| Visibilitas repo | Publik (disetujui 14 Sep 2026) | Actions & Pages gratis tanpa batas menit; konsekuensinya tidak ada data pribadi di repo |
+| Broker | Di luar cakupan | Sistem berhenti di daftar kandidat + zona harga; eksekusi manual |
 | Fundamental | SEC XBRL primer, yfinance sekunder | Resmi, gratis, lengkap 20 tahun; yfinance dipakai hanya untuk yang XBRL tidak punya (estimasi, holders, short) |
 | Normalisasi | z-score sektor, bukan persentil global | Supaya Value tidak = "beli bank" dan Quality tidak = "beli software" |
 | Rezim | Ubah bobot, bukan on/off | Faktor yang dimatikan total = hilang saat titik balik, persis yang mau dihindari |

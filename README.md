@@ -64,7 +64,7 @@ tinggi ke paling rendah. Dibaca sebagai analis, isinya tiga kalimat:
 | [docs/02-infrastruktur.md](docs/02-infrastruktur.md) | Sumber data (semuanya gratis), batas kuota, pipeline, jadwal CI dalam WIB, cache, biaya |
 | [docs/03-rancang-bangun.md](docs/03-rancang-bangun.md) | Struktur repo, modul, kolom output, label status, red flag, dashboard, pengujian |
 | [docs/04-roadmap.md](docs/04-roadmap.md) | Enam fase pembangunan, keluaran tiap fase, dan syarat "selesai" |
-| [docs/05-praktik-us-vs-idx.md](docs/05-praktik-us-vs-idx.md) | Jam bursa dalam WIB, T+1, fraksional, aturan PDT, pajak W-8BEN, broker dari Indonesia |
+| [docs/05-praktik-us-vs-idx.md](docs/05-praktik-us-vs-idx.md) | Jam bursa dalam WIB, T+1, fraksional, aturan PDT, pajak W-8BEN, risiko khusus AS |
 
 ## Prinsip yang dibawa dari Screening-Saham
 

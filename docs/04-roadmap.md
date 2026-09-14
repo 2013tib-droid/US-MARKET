@@ -13,6 +13,14 @@ Perkiraan durasi mengasumsikan kerja sambilan beberapa jam per minggu.
 label status, dan keputusan "data gratis saja". Perubahan setelah ini
 dicatat sebagai revisi dokumen, bukan diskusi ulang.
 
+**Keputusan pemilik (14 Sep 2026)**:
+
+| Hal | Keputusan |
+|---|---|
+| Visibilitas repo | Publik |
+| Universe | S&P 1500 + Nasdaq-100 + watchlist, ≈ 1.550 emiten |
+| Broker | Tidak dibahas; di luar cakupan sistem |
+
 ## Fase 1 — Universe, harga, dua faktor pertama (± 2 minggu)
 
 Tujuan: pipeline ujung ke ujung jalan dengan data yang paling mudah (harga),
@@ -89,7 +97,7 @@ harga $0,01), `uji_winrate.py` dengan pembanding SPY / QUAL / MTUM / VLUE,
 - Tiap pick malam tercatat dengan harga masuk = open sesi berikutnya (bukan
   close malam itu — itu harga yang tidak bisa didapat).
 - Winrate 5/10/20 hari bursa dihitung ulang tiap malam untuk seluruh arsip.
-- Laporan menyebut return setelah biaya (komisi broker, spread ± 0,05%,
+- Laporan menyebut return setelah biaya (komisi, spread ± 0,05%,
   kurs) dan membandingkannya dengan ETF faktor.
 
 ## Fase 6 — Dashboard & operasi (± 1 minggu)

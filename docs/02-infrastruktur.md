@@ -39,10 +39,11 @@ kalau suatu hari mau backtest serius, ini yang dibeli).
 3. **Earnings season** (minggu ke-2 sampai ke-6 setelah akhir kuartal) —
    ratusan emiten lapor per minggu. Cache fundamental harus diperbarui
    **mingguan selama earnings season**, cukup bulanan di luar itu.
-4. **GitHub Actions** gratis tanpa batas untuk repo publik; repo privat 2.000
-   menit/bulan. Run malam ± 10 menit × 21 hari = 210 menit; run fundamental
-   mingguan ± 30 menit × 4 = 120 menit. Total ± 330 menit/bulan — aman meski
-   privat.
+4. **Repo publik** (keputusan 14 Sep 2026). GitHub Actions dan Pages gratis
+   tanpa batas menit untuk repo publik. Perkiraan pemakaian: run malam
+   ± 10 menit × 21 hari + run fundamental ± 30 menit × 4 ≈ 330 menit/bulan.
+   Konsekuensinya, isi repo terbaca siapa saja: jangan pernah commit API key
+   atau data posisi pribadi — semuanya lewat GitHub Secrets.
 5. **Zona waktu**. NYSE tutup 16:00 ET. ET = UTC−4 saat DST (Maret–November),
    UTC−5 di luar itu. Cron GitHub dalam UTC, jadi satu jadwal harus menutupi
    keduanya: **22:17 UTC = 05:17 WIB** (WIB tidak bergeser). Tutup pasar
@@ -99,8 +100,7 @@ tahun ini.
 | `SEC_USER_AGENT` | `"US-MARKET screener nama@email"` | ✅ untuk EDGAR |
 | `FRED_API_KEY` | Dari fred.stlouisfed.org, gratis | ✅ untuk makro; tanpa ini, rezim jatuh ke mode "netral" dengan peringatan |
 
-Tidak ada secret lain. Tidak ada kredensial broker di repo — eksekusi order
-tetap manual.
+Tidak ada secret lain. Eksekusi order tetap manual dan di luar sistem.
 
 ## 6. Dependensi (dipin, alasannya ada di `requirements.txt` IDX)
 
@@ -121,5 +121,4 @@ dimulai; angka di atas adalah rilis yang diketahui saat dokumen ini ditulis.
 |---|---|
 | Data (yfinance, SEC, FRED, Wikipedia) | Rp 0 |
 | GitHub Actions + Pages (repo publik) | Rp 0 |
-| Broker untuk eksekusi | Di luar sistem; lihat [05-praktik-us-vs-idx.md](05-praktik-us-vs-idx.md) |
 | **Opsional, kalau suatu hari mau backtest bebas survivorship bias** | Sharadar (Nasdaq Data Link) ± $50/bulan — **tidak dibangun sebelum diminta** |
