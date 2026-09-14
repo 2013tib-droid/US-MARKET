@@ -16,7 +16,7 @@ Tidak ada server, tidak ada database, tidak ada langganan.
 | Short interest | yfinance `info` (`shortPercentOfFloat`, `shortRatio`, `sharesShort`) | ✅ | ❌ | — | Sumber aslinya FINRA, 2× sebulan |
 | Estimasi analis, target harga, tanggal earnings | yfinance `analyst_price_targets`, `recommendations`, `earnings_dates` | ✅ | ❌ | — | Konsensus lengkap (I/B/E/S, Zacks) berbayar; ini proksi |
 | Makro | **FRED API** (REST) | ✅ | ✅ gratis, daftar sekali | 120 req/menit | Seri: `T10Y2Y`, `BAMLH0A0HYM2`, `DFF`, `UNRATE`, `VIXCLS` |
-| Konstituen S&P 500/400/600, Nasdaq-100 | Wikipedia (tabel) | ✅ | ❌ | — | Rapuh kalau tabelnya diubah editor; `continue-on-error` + fallback ke file ticker terakhir yang di-commit, seperti `perbarui_universe.py` di IDX |
+| Konstituen S&P 500/400/600, Nasdaq-100 | Wikipedia (tabel ber-id `constituents`) | ✅ | ❌ tapi wajib User-Agent | — | Rapuh kalau tabelnya diubah editor. Tiap indeks divalidasi jumlah barisnya; yang tidak wajar dilewati dan berkas lamanya dipakai. Daftar Nasdaq-100 ada di halaman `List_of_NASDAQ-100_companies`, bukan halaman indeksnya, dan memakai sektor ICB yang dipetakan ke GICS |
 | Sektor & industri | yfinance `info` (`sector`, `industry`) | ✅ | ❌ | — | Bukan GICS resmi, tapi cukup untuk sektor-netral |
 | Kalender libur NYSE | Library `pandas_market_calendars` | ✅ | ❌ | — | Supaya cron tidak jalan sia-sia di hari libur |
 
@@ -55,8 +55,11 @@ kalau suatu hari mau backtest serius, ini yang dibeli).
 
 ```
 [Mingguan / Selasa 06:17 WIB]          [Malam / Sel–Sab 05:17 WIB]
- perbarui_universe.py                    harga.py  (yf.download batch, 2 th)
-   Wikipedia → tickers/sp1500.txt   ┐    makro.py  (FRED + ^GSPC + ^VIX)
+                                         cek_hari_bursa.py (libur NYSE → lewati)
+                                         perbarui_universe.py (4 halaman
+                                           Wikipedia → tickers/*.csv)
+                                    ┐    harga.py  (yf.download batch, 2 th)
+                                    │    makro.py  (FRED + ^GSPC + ^VIX)
  perbarui_cik.py                    │    faktor.py (z-score sektor, rezim,
    SEC → data/cik.csv               │              skor komposit)
  perbarui_fundamental.py            ├──▶ screener.py --output hasil/semua.csv
@@ -76,7 +79,7 @@ yang sudah terbukti di IDX menghindari dua run berebut push.
 
 | Berkas | Isi | Diperbarui |
 |---|---|---|
-| `tickers/sp500.txt`, `sp400.txt`, `sp600.txt`, `nasdaq100.txt` | Konstituen, satu ticker per baris | Mingguan |
+| `tickers/sp500.csv`, `sp400.csv`, `sp600.csv`, `nasdaq100.csv` | Ticker, Nama, Sektor (GICS), Industri per indeks | Malam (cuma 4 request; murah) |
 | `tickers/watchlist.txt` | Manual: saham di luar indeks yang mau dipantau | Manual |
 | `data/cik.csv` | ticker, CIK, nama resmi | Mingguan |
 | `data/fundamental.csv` | Satu baris per emiten: ~60 kolom XBRL 8 kuartal terakhir + rasio turunan + `sumber`, `periode`, `diperbarui` | Mingguan (earnings season) / bulanan |
@@ -104,16 +107,24 @@ Tidak ada secret lain. Eksekusi order tetap manual dan di luar sistem.
 
 ## 6. Dependensi (dipin, alasannya ada di `requirements.txt` IDX)
 
+Diperiksa di PyPI pada 14 Sep 2026, saat Fase 1 dibangun:
+
 ```
 yfinance==1.7.0
 pandas==3.0.5
-requests==2.32.5
-pandas_market_calendars==5.1.1
+numpy==2.5.3
+requests==2.34.2
+lxml==6.1.3                    # parser untuk pandas.read_html
+pandas_market_calendars==5.4.0
 ```
 
-`fredapi` tidak perlu — REST FRED cukup dengan `requests`. Versi
-`pandas_market_calendars` dan `requests` diverifikasi ulang saat Fase 1
-dimulai; angka di atas adalah rilis yang diketahui saat dokumen ini ditulis.
+`requirements-dev.txt` menambahkan `pytest` dan `truststore`. Yang kedua
+hanya untuk mesin di jaringan kantor yang memasang sertifikat TLS sendiri:
+tanpa itu, Python lokal gagal membuka Wikipedia dengan
+`CERTIFICATE_VERIFY_FAILED`. Runner GitHub tidak memasangnya.
+
+Python 3.14, sama di lokal dan di CI. `fredapi` tidak perlu — REST FRED
+cukup dengan `requests`.
 
 ## 7. Biaya
 

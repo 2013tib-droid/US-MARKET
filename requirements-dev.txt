@@ -1,0 +1,5 @@
+-r requirements.txt
+pytest==9.1.1
+# Hanya untuk mesin di jaringan kantor yang memasang sertifikat TLS sendiri:
+# membuat Python memakai daftar sertifikat Windows. Lihat usmarket/__init__.py.
+truststore==0.10.4

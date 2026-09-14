@@ -1,0 +1,21 @@
+name: Uji
+
+# Unit test tanpa internet: kalender, universe, faktor, teknikal. Jalan di
+# setiap push dan pull request, termasuk commit yang hanya mengubah dokumen,
+# karena murah (< 1 menit) dan tidak menulis apa pun ke repo.
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -q

@@ -4,8 +4,58 @@ Sistem analisa dan screening saham Amerika Serikat — saudara kandung dari
 [Screening-Saham](https://github.com/2013tib-droid/Screening-Saham) (IDX), tapi
 dengan **kungfu yang berbeda**, karena pasarnya berbeda.
 
-> **Status: Fase 0 — rancangan.** Repo ini baru berisi dokumen desain. Belum ada
-> kode yang jalan. Urutan pembangunannya ada di [docs/04-roadmap.md](docs/04-roadmap.md).
+> **Status: Fase 1 — harga & dua faktor pertama.** Universe ± 1.520 emiten,
+> faktor Momentum dan Low-Vol, indikator teknikal, dan trend template sudah
+> jalan tiap malam. Belum ada fundamental, smart money, rezim, maupun skor
+> komposit — jadi **belum ada rekomendasi**. Urutan pembangunannya ada di
+> [docs/04-roadmap.md](docs/04-roadmap.md).
+
+## Cara pakai
+
+```bash
+python -m venv .venv
+.venv/Scripts/pip install -r requirements-dev.txt   # Windows; di Linux/Mac: .venv/bin/pip
+
+python scripts/perbarui_universe.py     # konstituen S&P 500/400/600 + Nasdaq-100 dari Wikipedia
+python screener.py                      # unduh harga ± 1.520 emiten (± 1,5 menit) → hasil/semua.csv
+
+# Saring ulang tanpa unduh
+python screener.py --dari-csv hasil/semua.csv --likuid --trend-template --min-rs-rating 70 --tanpa-flag
+python screener.py --dari-csv hasil/semua.csv --likuid --min-z-lowvol 1 --max-beta 0.8 --urut Z_LowVol
+python screener.py --dari-csv hasil/semua.csv --sektor Energy Utilities --urut RS_Rating
+python screener.py --dari-csv hasil/semua.csv --indeks NDX --di-atas-ma200
+
+# Beberapa ticker saja (z-score-nya relatif terhadap ticker itu saja, jadi hanya untuk cek cepat)
+python screener.py --ticker AAPL NVDA BRK-B
+
+python -m pytest -q                     # unit test, tanpa internet
+```
+
+Opsi lengkap: `python screener.py --help`.
+
+### Yang dihasilkan tiap malam
+
+Workflow [screening-malam.yml](.github/workflows/screening-malam.yml) jalan
+Selasa–Sabtu pukul 05:17 WIB, setelah Wall Street tutup, dan melewati hari
+libur NYSE. Hasilnya di-commit ke repo:
+
+| Berkas | Isi |
+|---|---|
+| `hasil/semua.csv` | Seluruh universe, satu baris per emiten, termasuk yang gagal diunduh |
+| `hasil/tren.csv` | Likuid, lolos trend template, RS rating ≥ 70, tanpa flag; diurut dari momentum terkuat di sektornya. **Daftar pantau timing, bukan rekomendasi beli** |
+| `hasil/meta.json` | Waktu run, tanggal data, jumlah emiten, berapa yang gagal, durasi |
+
+### Membaca kolom
+
+| Kolom | Arti |
+|---|---|
+| `Z_Momentum`, `Z_LowVol` | Z-score **di dalam sektornya**, dipangkas ±3. 0 = rata-rata sektor, +1 = satu simpangan di atasnya. Membandingkan bank dengan bank, bukan bank dengan software |
+| `Ret12_1`, `Ret6_1` | Return 12 dan 6 bulan sampai sebulan lalu (%), disesuaikan dividen |
+| `RS_Rating` | Peringkat 1–99 terhadap seluruh universe, ala IBD |
+| `Vol1T`, `Beta`, `MaxDD1T` | Volatilitas tahunan (%), beta mingguan 2 tahun vs SPY, penurunan terdalam setahun (%) |
+| `TrendTemplate` | Harga > MA50 > MA150 > MA200, MA200 naik, ≥ 25% di atas low 52 minggu, ≤ 25% di bawah high |
+| `LolosLikuiditas` | Harga ≥ $5 dan nilai transaksi rata-rata 20 hari ≥ $10 juta |
+| `Flag` | `TIPIS`, `DATA-KURANG`, `BASI`, `SEKTOR-KECIL`, `GAGAL-UNDUH` — arti lengkap di [docs/03](docs/03-rancang-bangun.md#5-red-flag-kolom-flag-dipisah-) |
 
 ## Kenapa kungfunya harus beda
 
