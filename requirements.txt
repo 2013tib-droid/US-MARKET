@@ -1,0 +1,10 @@
+# Versi dipin, bukan ">=" — alasannya sama dengan repo Screening-Saham:
+# "jalan di sini, rusak di CI" harus bisa dibedakan dari perubahan perilaku
+# sumber data. Naikkan versinya secara sadar, satu per satu.
+#
+# Belum dipakai kode apa pun (Fase 0 = dokumen). Versi requests dan
+# pandas_market_calendars diverifikasi ulang saat Fase 1 dimulai.
+yfinance==1.7.0
+pandas==3.0.5
+requests==2.32.5
+pandas_market_calendars==5.1.1

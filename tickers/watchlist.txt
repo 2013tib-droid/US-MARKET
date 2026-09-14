@@ -1,0 +1,5 @@
+# Watchlist manual: saham di luar S&P 1500 / Nasdaq-100 yang mau ikut
+# di-screening. Satu ticker per baris, baris berawalan # diabaikan.
+# Ticker kelas saham memakai tanda minus (BRK-B), bukan titik.
+#
+# Kosong dulu — isi saat Fase 1 jalan.
