@@ -13,7 +13,7 @@ US-MARKET/
 ├── docs/                      ← dokumen ini
 ├── .github/workflows/
 │   ├── screening-malam.yml    ← Sel–Sab 05:17 WIB: harga, faktor, screening, SMC, winrate, Pages
-│   └── fundamental-mingguan.yml ← Selasa 06:17 WIB: universe, CIK, SEC XBRL, smart money
+│   └── fundamental-mingguan.yml ← Minggu 06:17 WIB: SEC XBRL, going concern, restatement (smart money di Fase 3)
 ├── tickers/
 │   ├── sp500.csv  sp400.csv  sp600.csv  nasdaq100.csv   ← otomatis, dengan nama & sektor
 │   └── watchlist.txt                                    ← manual
@@ -28,6 +28,7 @@ US-MARKET/
 │   ├── kalender.py    ← libur & jam tutup NYSE, kapan bar harian final
 │   ├── harga.py       ← yf.download batch, coba ulang, "selalu data penutupan"
 │   ├── tabel.py       ← menyusun hasil/semua.csv: kolom, likuiditas, red flag
+│   ├── valuasi.py     ← metrik yang butuh harga: market cap, EV, yield, Altman Z, Z_Value, Z_Quality, Keyakinan
 │   ├── sec.py         ← klien EDGAR: CIK, companyfacts, submissions, Form 4
 │   ├── fundamental.py ← rasio dari XBRL: ROIC, akrual, F-score, Z-score, shareholder yield
 │   ├── smartmoney.py  ← insider net, cluster buy, institusi, short interest
@@ -41,8 +42,8 @@ US-MARKET/
 ├── analisa_smc.py             ← zona entri/stop/target untuk kandidat
 ├── uji_winrate.py             ← arsip pick + hasil forward
 ├── scripts/
-│   ├── perbarui_universe.py  perbarui_cik.py
-│   ├── perbarui_fundamental.py  perbarui_smartmoney.py
+│   ├── perbarui_universe.py  perbarui_fundamental.py  verifikasi_fundamental.py
+│   ├── cek_hari_bursa.py  perbarui_smartmoney.py (Fase 3)
 │   └── uji_*.py               ← uji kecil per modul, jalan di CI sebelum screening
 └── tests/                     ← pytest untuk fungsi murni (z-score, F-score, rezim)
 ```
@@ -63,7 +64,7 @@ Kolom yang dihasilkan tiap modul tetap (didaftar di §4), sehingga
 |---|---|---|---|---|
 | `universe` | tickers/*.csv + watchlist.txt | daftar Ticker + `Indeks` | Wikipedia berubah | pakai file terakhir yang di-commit |
 | `harga` | daftar Ticker | OHLCV 2 tahun (panel) | Yahoo rate-limit | retry 3× dengan jeda; ticker yang kosong ditandai `DATA KURANG`, run lanjut |
-| `sec` + `fundamental` | data/cik.csv | data/fundamental.csv | EDGAR 403 (User-Agent), tag XBRL beda per emiten | emiten tanpa tag inti → kolom NaN + `Keyakinan` turun; **tidak** dibuang |
+| `sec` + `fundamental` | peta CIK SEC (diunduh tiap run) | data/fundamental.csv | EDGAR 403 (User-Agent), tag XBRL beda per emiten | emiten tanpa tag inti → kolom NaN + `Keyakinan` turun; **tidak** dibuang |
 | `smartmoney` | Ticker | data/smartmoney.csv | yfinance holders kosong | skor smart money = 0 (netral), bukan NaN |
 | `makro` | — | rezim + tabel | FRED key hilang | rezim = NETRAL + peringatan di meta.json |
 | `faktor` | gabungan di atas | z-score per faktor + `Skor` | sektor < 5 emiten | z-score dihitung terhadap universe, ditandai `SektorKecil` |
@@ -102,9 +103,11 @@ Dikelompokkan supaya dashboard bisa menyembunyikan grup yang tidak dibutuhkan.
 
 **Likuiditas**: `Nilai20H_JutaUSD`, `VolSpike`, `LolosLikuiditas`
 
-**Value**: `EV_EBITDA`, `PE_Fwd`, `PE_TTM`, `FCF_Yield`, `PB`, `Z_Value`
+**Value** (Fase 2): `EV_EBITDA`, `PE_TTM`, `PB` (kelipatan, untuk dibaca), `EBITDA_EV`, `E_P`, `FCF_Yield` (%; yang dipakai skor), `Z_Value`. `PE_Fwd` menyusul di Fase 3
 
-**Quality**: `ROIC`, `ROE`, `GrossMargin`, `GM_Stabilitas5T`, `NetDebt_EBITDA`, `Akrual`, `EPS_Variabilitas`, `F_Score`, `Z_Altman`, `OCF_Laba`, `Z_Quality`
+**Quality** (Fase 2): `ROIC`, `ROE`, `GrossMargin`, `Akrual` (%), `GM_Stabilitas5T`, `ROA_Variabilitas5T` (poin persen), `NetDebt_EBITDA`, `OCF_Laba`, `Cakupan_Bunga` (x, dibatasi ±999 = tanpa beban bunga), `F_Score`, `Z_Altman`, `Z_Quality`
+
+**Identitas tambahan** (Fase 2): `MCap_MiliarUSD`, `Basis` (TTM-4Q/FY), `Periode_Lapkeu`. Angka mentah (pendapatan, utang, tag XBRL yang terpakai) ada di `data/fundamental.csv`, bukan di tabel malam
 
 **Momentum**: `Ret12_1`, `Ret6_1` (%), `Mom_RiskAdj` (return ÷ `Vol1T`), `Z_Momentum`, `RS_Rating` (1–99)
 
@@ -114,7 +117,7 @@ Dikelompokkan supaya dashboard bisa menyembunyikan grup yang tidak dibutuhkan.
 
 **Smart money**: `Insider_Net90H_JutaUSD`, `Insider_ClusterBuy`, `Institusi_Pct`, `Institusi_Delta`, `Short_PctFloat`, `Short_Ratio`, `Z_SmartMoney`
 
-**Yield**: `DivYield`, `Buyback_Yield`, `Shareholder_Yield`
+**Yield & pertumbuhan** (Fase 2): `DivYield`, `Buyback_Yield` (buyback − penerbitan saham), `Shareholder_Yield`, `Rev_YoY`, `Laba_YoY`, `Dilusi_YoY` (%)
 
 **Teknikal**: `MA50`, `MA150`, `MA200`, `MA200_Naik`, `High52`, `Low52`, `RS_vs_SPX`, `RS_HighBaru`, `ATR14`, `RSI14`, `TrendTemplate`
 
@@ -128,15 +131,21 @@ menerjemahkan angka.
 
 | Kode | Arti | Berat? |
 |---|---|---|
-| `ZONA-BAHAYA` | Altman Z < 1,8 (non-keuangan) | ✅ → HINDARI |
-| `GOING-CONCERN` | Frasa going concern di 10-K terakhir | ✅ → HINDARI |
+| `DISTRES` | Altman Z < 1,8 **dan** EBIT/bunga < 1,5 | ✅ → HINDARI |
+| `ZONA-BAHAYA` | Altman Z < 1,8 saja (non-keuangan, bukan REIT/utilitas) | ⚠️ — sering salah alarm untuk emiten padat modal |
+| `RESTATEMENT` | 8-K Item 4.02 dalam 400 hari | ✅ → HINDARI |
+| `GOING-CONCERN` | Kalimat going concern baku auditor di 10-K/10-Q setahun terakhir | ⚠️ — wajib dibaca, bisa kalimat "sudah teratasi" |
+| `SAHAM-JANGGAL` | Laba > market cap atau nilai buku > 20× market cap: jumlah saham salah | ✅ → valuasi dikosongkan |
+| `UTANG-TAK-TERBACA` | Beban bunga material tapi saldo utang tidak ada di XBRL non-dimensional (non-keuangan) | ⚠️ — EV & leverage kosong |
+| `FILER-ASING` | Laporan IFRS atau bukan USD | Fundamental tidak dihitung |
+| `LAPKEU-LAMA` | Periode laporan terakhir > 270 hari lalu | Keyakinan −15 |
 | `F-RENDAH` | Piotroski ≤ 3 | ✅ → HINDARI |
 | `LABA-KERTAS` | OCF/Laba < 0,6 dua tahun | ⚠️ |
 | `DILUSI` | Saham beredar naik > 5% YoY | ⚠️ |
 | `GOODWILL` | Goodwill/Ekuitas > 100% | ⚠️ |
 | `SHORT-TINGGI` | Short > 20% float | ⚠️; > 30% → HINDARI |
 | `INSIDER-JUAL` | Insider net jual > $10 juta dalam 90 hari, bukan 10b5-1 | ⚠️ |
-| `TIPIS` | Nilai transaksi < $10 juta/hari | ✅ → HINDARI |
+| `TIPIS` | Harga < $5, nilai transaksi < $10 juta/hari, atau market cap < $1 miliar | ✅ → HINDARI |
 | `EARNINGS-DEKAT` | ≤ 5 hari bursa | → TUNGGU-LAPKEU |
 | `DATA-KURANG` | Fase 1: histori < 1 tahun sehingga Momentum/Low-Vol kosong. Mulai Fase 2: juga > 3 metrik inti kosong | Keyakinan −20 |
 | `SEKTOR-KECIL` | Pembanding sektor < 5, z-score diukur terhadap universe | Keyakinan −10 |
@@ -153,7 +162,7 @@ python screener.py                                   # seluruh universe → hasi
 python screener.py --dari-csv hasil/semua.csv --min-skor 70 --trend-template --output hasil/akumulasi.csv
 python screener.py --dari-csv hasil/semua.csv --min-skor 70 --output hasil/pantau.csv
 python screener.py --dari-csv hasil/semua.csv --max-ev-ebitda 10 --min-fcf-yield 5 --min-fscore 6 --output hasil/value.csv
-python screener.py --dari-csv hasil/semua.csv --min-roic 15 --max-akrual 0.05 --min-fscore 7 --output hasil/quality.csv
+python screener.py --dari-csv hasil/semua.csv --min-roic 15 --max-akrual 5 --min-fscore 7 --output hasil/quality.csv
 python screener.py --sektor Technology Healthcare --min-insider-net 1 --urut Skor
 python screener.py --tickers tickers/watchlist.txt --rezim netral   # paksa rezim untuk membandingkan (Fase 4)
 python analisa.py NVDA --output analisa/NVDA.md

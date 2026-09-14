@@ -1,0 +1,37 @@
+{
+  "diperbarui": "2026-09-14T21:21:16Z",
+  "versi_skema": 2,
+  "jumlah_ticker": 1521,
+  "jumlah_cik": 1513,
+  "nonkeuangan": 1263,
+  "inti_terisi_nonkeuangan": {
+    "Pendapatan": 1239,
+    "Laba": 1249,
+    "OCF": 1243,
+    "Aset": 1248,
+    "Ekuitas": 1248,
+    "Saham": 1237
+  },
+  "going_concern": [
+    "ECHO"
+  ],
+  "restatement": [
+    "AVAV",
+    "CENX",
+    "GRBK",
+    "HUBG",
+    "MPWR",
+    "SEZL",
+    "SWX"
+  ],
+  "histori_pendek_kandidat_cik_pendahulu": [
+    "ADIG",
+    "HONA",
+    "MBGL",
+    "MFP",
+    "SKT",
+    "SPCX",
+    "VGNT"
+  ],
+  "durasi_detik": 198.2
+}

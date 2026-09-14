@@ -12,7 +12,7 @@ on:
     branches: [main, "fase-*"]
     # Commit hasil oleh bot memakai GITHUB_TOKEN dan tidak memicu run baru,
     # tapi commit dokumen atau daftar ticker oleh manusia juga tidak perlu.
-    paths-ignore: ["hasil/**", "docs/**", "**.md", "tickers/**"]
+    paths-ignore: ["hasil/**", "docs/**", "**.md", "tickers/**", "data/**"]
 
 permissions:
   contents: write
@@ -65,6 +65,33 @@ jobs:
           --likuid --trend-template --min-rs-rating 70 --tanpa-flag
           --urut Z_Momentum --output hasil/tren.csv --diam
 
+      # Saringan fundamental (Fase 2). Keduanya: likuid, tanpa flag berat
+      # (DISTRES, RESTATEMENT, F-RENDAH, …), data cukup dipercaya
+      # (Keyakinan ≥ 70), dan Piotroski ≥ 6 supaya "murah" atau "berkualitas"
+      # tidak berasal dari fundamental yang sedang memburuk. Z ≥ 1 = satu
+      # simpangan di atas rata-rata sektornya.
+      - name: Saringan value & quality
+        if: steps.bursa.outputs.jalan == 'true'
+        run: |
+          python screener.py --dari-csv hasil/semua.csv --likuid --tanpa-flag-berat \
+            --min-keyakinan 70 --min-fscore 6 --min-z-value 1 --urut Z_Value \
+            --output hasil/value.csv --diam
+          python screener.py --dari-csv hasil/semua.csv --likuid --tanpa-flag-berat \
+            --min-keyakinan 70 --min-fscore 6 --min-z-quality 1 --urut Z_Quality \
+            --output hasil/quality.csv --diam
+
+      # Run di branch fitur (fase-*) tidak meng-commit hasil/: main menerima
+      # commit hasil tiap malam, jadi hasil yang juga di-commit di branch
+      # fitur membuat pull request-nya konflik di hasil/*.csv. Hasil run
+      # branch fitur diunggah sebagai artifact untuk diperiksa.
+      - name: Unggah hasil (branch fitur)
+        if: steps.bursa.outputs.jalan == 'true' && github.ref_name != github.event.repository.default_branch
+        uses: actions/upload-artifact@v7
+        with:
+          name: hasil-${{ github.ref_name }}
+          path: hasil/
+          retention-days: 14
+
       # Pola commit disalin dari Screening-Saham, termasuk alasannya: coba
       # push sampai tiga kali, dan saat ditolak selaraskan ke remote dengan
       # reset + tulis ulang berkas hasil, bukan rebase. Isi hasil/ dan
@@ -72,7 +99,7 @@ jobs:
       # digabung baris per baris; rebase atas dua tabel 1.500 baris yang
       # ditulis terpisah hanya menghasilkan konflik.
       - name: Commit hasil
-        if: steps.bursa.outputs.jalan == 'true'
+        if: steps.bursa.outputs.jalan == 'true' && github.ref_name == github.event.repository.default_branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

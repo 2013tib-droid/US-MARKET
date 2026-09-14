@@ -4,10 +4,11 @@ Sistem analisa dan screening saham Amerika Serikat — saudara kandung dari
 [Screening-Saham](https://github.com/2013tib-droid/Screening-Saham) (IDX), tapi
 dengan **kungfu yang berbeda**, karena pasarnya berbeda.
 
-> **Status: Fase 1 — harga & dua faktor pertama.** Universe ± 1.520 emiten,
-> faktor Momentum dan Low-Vol, indikator teknikal, dan trend template sudah
-> jalan tiap malam. Belum ada fundamental, smart money, rezim, maupun skor
-> komposit — jadi **belum ada rekomendasi**. Urutan pembangunannya ada di
+> **Status: Fase 2 — fundamental dari SEC.** Universe ± 1.520 emiten dengan
+> empat faktor (Value, Quality, Momentum, Low-Vol), Piotroski F-score,
+> Altman Z, red flag dari laporan keuangan dan EDGAR, serta laporan satu
+> emiten. Belum ada smart money, rezim makro, maupun skor komposit — jadi
+> **belum ada rekomendasi beli/jual**. Urutan pembangunannya ada di
 > [docs/04-roadmap.md](docs/04-roadmap.md).
 
 ## Cara pakai
@@ -17,13 +18,20 @@ python -m venv .venv
 .venv/Scripts/pip install -r requirements-dev.txt   # Windows; di Linux/Mac: .venv/bin/pip
 
 python scripts/perbarui_universe.py     # konstituen S&P 500/400/600 + Nasdaq-100 dari Wikipedia
+
+# Laporan keuangan dari SEC (± 3,5 menit). SEC mewajibkan nama + email di User-Agent.
+SEC_USER_AGENT="US-MARKET screener nama@email.com" python scripts/perbarui_fundamental.py
+
 python screener.py                      # unduh harga ± 1.520 emiten (± 1,5 menit) → hasil/semua.csv
+python analisa.py AAPL                  # laporan fundamental satu emiten (Markdown)
 
 # Saring ulang tanpa unduh
 python screener.py --dari-csv hasil/semua.csv --likuid --trend-template --min-rs-rating 70 --tanpa-flag
 python screener.py --dari-csv hasil/semua.csv --likuid --min-z-lowvol 1 --max-beta 0.8 --urut Z_LowVol
 python screener.py --dari-csv hasil/semua.csv --sektor Energy Utilities --urut RS_Rating
 python screener.py --dari-csv hasil/semua.csv --indeks NDX --di-atas-ma200
+python screener.py --dari-csv hasil/semua.csv --likuid --tanpa-flag-berat --min-z-value 1 --min-fscore 6 --urut Z_Value
+python screener.py --dari-csv hasil/semua.csv --min-roic 15 --max-ev-ebitda 12 --min-keyakinan 80
 
 # Beberapa ticker saja (z-score-nya relatif terhadap ticker itu saja, jadi hanya untuk cek cepat)
 python screener.py --ticker AAPL NVDA BRK-B
@@ -43,19 +51,32 @@ libur NYSE. Hasilnya di-commit ke repo:
 |---|---|
 | `hasil/semua.csv` | Seluruh universe, satu baris per emiten, termasuk yang gagal diunduh |
 | `hasil/tren.csv` | Likuid, lolos trend template, RS rating ≥ 70, tanpa flag; diurut dari momentum terkuat di sektornya. **Daftar pantau timing, bukan rekomendasi beli** |
+| `hasil/value.csv` | Likuid, tanpa flag berat, Keyakinan ≥ 70, F-score ≥ 6, Z_Value ≥ 1 (murah dibanding sektornya) |
+| `hasil/quality.csv` | Sama, tapi Z_Quality ≥ 1 (berkualitas dibanding sektornya) |
 | `hasil/meta.json` | Waktu run, tanggal data, jumlah emiten, berapa yang gagal, durasi |
+
+Laporan keuangan diperbarui terpisah oleh
+[fundamental-mingguan.yml](.github/workflows/fundamental-mingguan.yml) setiap
+Minggu pukul 06:17 WIB ke `data/fundamental.csv`: angka mentah TTM dari XBRL
+SEC, tag yang terpakai, going concern, dan restatement. Run malam
+menggabungkannya dengan harga terbaru.
 
 ### Membaca kolom
 
 | Kolom | Arti |
 |---|---|
-| `Z_Momentum`, `Z_LowVol` | Z-score **di dalam sektornya**, dipangkas ±3. 0 = rata-rata sektor, +1 = satu simpangan di atasnya. Membandingkan bank dengan bank, bukan bank dengan software |
+| `Z_Value`, `Z_Quality`, `Z_Momentum`, `Z_LowVol` | Z-score **di dalam sektornya**, dipangkas ±3. 0 = rata-rata sektor, +1 = satu simpangan di atasnya. Membandingkan bank dengan bank, bukan bank dengan software |
+| `EV_EBITDA`, `PE_TTM`, `PB`, `FCF_Yield` | Valuasi dengan harga penutupan terakhir dan laporan TTM. Kelipatan kosong bila penyebutnya negatif |
+| `ROIC`, `GrossMargin`, `Akrual`, `NetDebt_EBITDA` | Kualitas bisnis (%). ROIC = laba operasi setelah pajak ÷ (utang + ekuitas) |
+| `F_Score` | Piotroski 0–9: berapa dari sembilan sisi fundamental yang membaik dari tahun lalu |
+| `Z_Altman`, `Cakupan_Bunga` | Risiko kebangkrutan dan EBIT ÷ beban bunga (±999 = tanpa beban bunga) |
+| `Keyakinan` | 0–100: seberapa jauh angka laporan keuangan baris itu boleh dipercaya, bukan seberapa yakin sahamnya naik |
 | `Ret12_1`, `Ret6_1` | Return 12 dan 6 bulan sampai sebulan lalu (%), disesuaikan dividen |
 | `RS_Rating` | Peringkat 1–99 terhadap seluruh universe, ala IBD |
 | `Vol1T`, `Beta`, `MaxDD1T` | Volatilitas tahunan (%), beta mingguan 2 tahun vs SPY, penurunan terdalam setahun (%) |
 | `TrendTemplate` | Harga > MA50 > MA150 > MA200, MA200 naik, ≥ 25% di atas low 52 minggu, ≤ 25% di bawah high |
-| `LolosLikuiditas` | Harga ≥ $5 dan nilai transaksi rata-rata 20 hari ≥ $10 juta |
-| `Flag` | `TIPIS`, `DATA-KURANG`, `BASI`, `SEKTOR-KECIL`, `GAGAL-UNDUH` — arti lengkap di [docs/03](docs/03-rancang-bangun.md#5-red-flag-kolom-flag-dipisah-) |
+| `LolosLikuiditas` | Harga ≥ $5, nilai transaksi rata-rata 20 hari ≥ $10 juta, market cap ≥ $1 miliar |
+| `Flag` | Berat: `DISTRES`, `RESTATEMENT`, `F-RENDAH`, `TIPIS`, `SAHAM-JANGGAL`, `GAGAL-UNDUH`. Peringatan: `ZONA-BAHAYA`, `GOING-CONCERN`, `LABA-KERTAS`, `DILUSI`, `GOODWILL`, dan lainnya — arti lengkap di [docs/03](docs/03-rancang-bangun.md#5-red-flag-kolom-flag-dipisah-) |
 
 ## Kenapa kungfunya harus beda
 

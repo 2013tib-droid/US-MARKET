@@ -6,7 +6,7 @@ bertambah, supaya dashboard dan uji winrate bisa menolak CSV yang tidak
 mereka pahami alih-alih salah membacanya diam-diam.
 """
 
-VERSI_SKEMA = 1
+VERSI_SKEMA = 2  # 2: kolom fundamental (Fase 2)
 
 import sys as _sys
 

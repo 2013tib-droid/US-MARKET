@@ -1,0 +1,79 @@
+name: Fundamental Mingguan
+
+on:
+  schedule:
+    # Sabtu 23:17 UTC = Minggu 06:17 WIB. Bursa tutup, tidak berebut antrean
+    # dengan run malam, dan hasilnya sudah dipakai run malam Senin.
+    - cron: "17 23 * * 6"
+  workflow_dispatch:
+  push:
+    branches: ["fase-*"]
+    paths:
+      - "usmarket/sec.py"
+      - "usmarket/fundamental.py"
+      - "scripts/perbarui_fundamental.py"
+      - ".github/workflows/fundamental-mingguan.yml"
+
+permissions:
+  contents: write
+
+# Grup yang sama dengan screening-malam.yml: keduanya commit ke repo ini.
+concurrency:
+  group: tulis-repo
+  cancel-in-progress: false
+
+jobs:
+  fundamental:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install dependensi
+        run: pip install -r requirements.txt
+
+      # ± 1.500 permintaan companyfacts (8/detik) + pencarian teks penuh EDGAR
+      # + cadangan jumlah saham dari Yahoo untuk emiten multi-kelas. ± 4 menit.
+      - name: Tarik laporan keuangan dari SEC
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+        run: python scripts/perbarui_fundamental.py
+
+      - name: Commit data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then
+            echo "Tidak ada perubahan data, tidak ada yang di-commit."
+            exit 0
+          fi
+          pesan="Fundamental SEC $(TZ=Asia/Jakarta date '+%Y-%m-%d %H:%M WIB')"
+          git commit -m "$pesan"
+
+          # Pola sama dengan screening-malam.yml: coba push tiga kali; saat
+          # ditolak, ambil keadaan remote lalu tulis ulang berkas data/.
+          simpan="$(mktemp -d)"
+          cp -r data "$simpan/data"
+          for percobaan in 1 2 3; do
+            if git push; then
+              echo "Berhasil didorong pada percobaan ke-$percobaan."
+              exit 0
+            fi
+            git fetch origin "$GITHUB_REF_NAME" || { echo "Gagal mengambil keadaan remote." >&2; exit 1; }
+            git reset --hard FETCH_HEAD
+            cp -r "$simpan/data/." data/
+            git add data/
+            if git diff --cached --quiet; then
+              echo "Run lain sudah menulis data yang sama persis."
+              exit 0
+            fi
+            git commit -m "$pesan"
+          done
+          echo "Push tetap gagal setelah 3 percobaan." >&2
+          exit 1
