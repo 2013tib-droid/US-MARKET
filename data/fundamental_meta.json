@@ -1,5 +1,5 @@
 {
-  "diperbarui": "2026-09-14T21:21:16Z",
+  "diperbarui": "2026-09-14T21:36:17Z",
   "versi_skema": 2,
   "jumlah_ticker": 1521,
   "jumlah_cik": 1513,
@@ -10,7 +10,7 @@
     "OCF": 1243,
     "Aset": 1248,
     "Ekuitas": 1248,
-    "Saham": 1237
+    "Saham": 1249
   },
   "going_concern": [
     "ECHO"
@@ -33,5 +33,5 @@
     "SPCX",
     "VGNT"
   ],
-  "durasi_detik": 198.2
+  "durasi_detik": 198.6
 }
