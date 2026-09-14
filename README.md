@@ -26,7 +26,7 @@ python screener.py                      # unduh harga ± 1.520 emiten (± 1,5 me
 python analisa.py AAPL                  # laporan fundamental satu emiten (Markdown)
 
 # Saring ulang tanpa unduh
-python screener.py --dari-csv hasil/semua.csv --likuid --trend-template --min-rs-rating 70 --tanpa-flag
+python screener.py --dari-csv hasil/semua.csv --likuid --trend-template --min-rs-rating 70 --tanpa-flag-berat
 python screener.py --dari-csv hasil/semua.csv --likuid --min-z-lowvol 1 --max-beta 0.8 --urut Z_LowVol
 python screener.py --dari-csv hasil/semua.csv --sektor Energy Utilities --urut RS_Rating
 python screener.py --dari-csv hasil/semua.csv --indeks NDX --di-atas-ma200
@@ -50,7 +50,7 @@ libur NYSE. Hasilnya di-commit ke repo:
 | Berkas | Isi |
 |---|---|
 | `hasil/semua.csv` | Seluruh universe, satu baris per emiten, termasuk yang gagal diunduh |
-| `hasil/tren.csv` | Likuid, lolos trend template, RS rating ≥ 70, tanpa flag; diurut dari momentum terkuat di sektornya. **Daftar pantau timing, bukan rekomendasi beli** |
+| `hasil/tren.csv` | Likuid, lolos trend template, RS rating ≥ 70, tanpa flag berat; diurut dari momentum terkuat di sektornya. **Daftar pantau timing, bukan rekomendasi beli** |
 | `hasil/value.csv` | Likuid, tanpa flag berat, Keyakinan ≥ 70, F-score ≥ 6, Z_Value ≥ 1 (murah dibanding sektornya) |
 | `hasil/quality.csv` | Sama, tapi Z_Quality ≥ 1 (berkualitas dibanding sektornya) |
 | `hasil/meta.json` | Waktu run, tanggal data, jumlah emiten, berapa yang gagal, durasi |

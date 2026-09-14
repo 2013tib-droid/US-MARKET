@@ -55,14 +55,14 @@ jobs:
         run: python screener.py --output hasil/semua.csv --meta hasil/meta.json --diam
 
       # Daftar pantau timing: likuid, trend template lolos, RS rating ≥ 70
-      # (syarat ke-8 trend template Minervini), tanpa flag apa pun, diurut
+      # (syarat ke-8 trend template Minervini), tanpa flag berat, diurut
       # dari momentum terkuat di sektornya. Ini BUKAN rekomendasi beli: skor
       # komposit dan status AKUMULASI baru ada di Fase 4.
       - name: Saringan tren
         if: steps.bursa.outputs.jalan == 'true'
         run: >
           python screener.py --dari-csv hasil/semua.csv
-          --likuid --trend-template --min-rs-rating 70 --tanpa-flag
+          --likuid --trend-template --min-rs-rating 70 --tanpa-flag-berat
           --urut Z_Momentum --output hasil/tren.csv --diam
 
       # Saringan fundamental (Fase 2). Keduanya: likuid, tanpa flag berat
