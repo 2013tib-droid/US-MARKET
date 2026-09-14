@@ -38,6 +38,25 @@ dan **Low-Vol** (keduanya hanya butuh harga), `screener.py` versi minimum,
   (uji "selalu data penutupan").
 - Workflow jalan otomatis 3 malam berturut-turut tanpa intervensi.
 
+**Hasil (14 Sep 2026, data penutupan 11 Sep 2026)**:
+
+| Syarat | Hasil | Status |
+|---|---|---|
+| ≥ 1.400 emiten dalam ≤ 10 menit di Actions | 1.521 emiten; unduh + hitung 192 detik, seluruh job < 4 menit | ✅ |
+| Momentum & Low-Vol terisi ≥ 95% | 1.509 / 1.521 = 99,2%. Sebelas emiten baru IPO/spin-off < 1 tahun berlabel `DATA-KURANG`; satu (CWEN-A) tidak dimuat Yahoo, berlabel `GAGAL-UNDUH` | ✅ |
+| Run saat pasar buka = run pagi | Logikanya diuji unit test dengan jam buatan, termasuk tutup setengah hari 28 Nov 2025. **Belum diuji dengan run sungguhan saat NYSE buka** (21:30–04:00 WIB) | ⏳ |
+| 3 malam berturut-turut otomatis | Cron hanya jalan dari branch default; menunggu branch `fase-1` digabung ke `main` | ⏳ |
+
+Universe nyatanya ± 1.520, bukan 1.550: 87 dari 102 emiten Nasdaq-100
+juga anggota S&P 500.
+
+**Temuan yang mengubah rancangan**: beta harian satu tahun ditolak. Pada
+data Sep 2025–Sep 2026 ia memberi AAPL 0,69 (korelasi dengan SPY 0,35),
+KO −0,26, dan XOM −0,56 — median universe 0,71. Beta dari return mingguan
+dua tahun, jendela baku penyedia data, memberi AAPL 1,07, KO 0,12, XOM
+−0,01, median 0,84. Hitungan diperiksa silang dengan unduhan terpisah; angka
+harian yang aneh itu memang ada di datanya, bukan salah kode.
+
 ## Fase 2 — Fundamental dari SEC: Quality, Value, red flag (± 3 minggu)
 
 Bagian paling berat dan paling bernilai. Tag XBRL tidak seragam antar

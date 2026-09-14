@@ -142,9 +142,11 @@ Skor_Akhir   = peringkat persentil Skor_Faktor di universe (0–100)
 
 Lalu saringan bertahap, urutannya penting:
 
-1. **Universe**: S&P 1500 + Nasdaq-100 + watchlist manual (~1.550 emiten).
+1. **Universe**: S&P 1500 + Nasdaq-100 + watchlist manual (± 1.520 emiten
+   unik; 87 anggota Nasdaq-100 juga ada di S&P 500).
 2. **Likuiditas**: harga ≥ $5, nilai transaksi rata-rata 20 hari ≥ $10 juta,
-   market cap ≥ $1 miliar.
+   market cap ≥ $1 miliar (syarat market cap aktif mulai Fase 2, saat jumlah
+   saham beredar tersedia dari SEC).
 3. **Red flag**: buang yang kena flag berat (Z < 1,8, going concern, F-score ≤ 3).
 4. **Skor** ≥ 70 masuk daftar *kandidat*.
 5. **Timing**: trend template lolos → **AKUMULASI**; belum lolos → **PANTAU**.
