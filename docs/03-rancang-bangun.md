@@ -15,7 +15,7 @@ US-MARKET/
 │   ├── screening-malam.yml    ← Sel–Sab 05:17 WIB: harga, faktor, screening, SMC, winrate, Pages
 │   └── fundamental-mingguan.yml ← Selasa 06:17 WIB: universe, CIK, SEC XBRL, smart money
 ├── tickers/
-│   ├── sp500.txt  sp400.txt  sp600.txt  nasdaq100.txt   ← otomatis
+│   ├── sp500.csv  sp400.csv  sp600.csv  nasdaq100.csv   ← otomatis, dengan nama & sektor
 │   └── watchlist.txt                                    ← manual
 ├── data/                      ← cache, di-commit
 │   ├── cik.csv  fundamental.csv  smartmoney.csv  makro.csv
@@ -24,8 +24,10 @@ US-MARKET/
 │   ├── index.html             ← tabel hasil + filter, baca CSV dari hasil/
 │   └── winrate.html
 ├── usmarket/                  ← paket Python; setiap modul bisa diimpor & diuji
-│   ├── universe.py    ← konstituen indeks, watchlist, filter likuiditas
-│   ├── harga.py       ← yf.download batch, pembersihan, "selalu data penutupan"
+│   ├── universe.py    ← konstituen indeks, watchlist
+│   ├── kalender.py    ← libur & jam tutup NYSE, kapan bar harian final
+│   ├── harga.py       ← yf.download batch, coba ulang, "selalu data penutupan"
+│   ├── tabel.py       ← menyusun hasil/semua.csv: kolom, likuiditas, red flag
 │   ├── sec.py         ← klien EDGAR: CIK, companyfacts, submissions, Form 4
 │   ├── fundamental.py ← rasio dari XBRL: ROIC, akrual, F-score, Z-score, shareholder yield
 │   ├── smartmoney.py  ← insider net, cluster buy, institusi, short interest
@@ -59,7 +61,7 @@ Kolom yang dihasilkan tiap modul tetap (didaftar di §4), sehingga
 
 | Modul | Masukan | Keluaran | Bisa gagal karena | Kalau gagal |
 |---|---|---|---|---|
-| `universe` | tickers/*.txt | daftar Ticker + `Indeks` | Wikipedia berubah | pakai file terakhir yang di-commit |
+| `universe` | tickers/*.csv + watchlist.txt | daftar Ticker + `Indeks` | Wikipedia berubah | pakai file terakhir yang di-commit |
 | `harga` | daftar Ticker | OHLCV 2 tahun (panel) | Yahoo rate-limit | retry 3× dengan jeda; ticker yang kosong ditandai `DATA KURANG`, run lanjut |
 | `sec` + `fundamental` | data/cik.csv | data/fundamental.csv | EDGAR 403 (User-Agent), tag XBRL beda per emiten | emiten tanpa tag inti → kolom NaN + `Keyakinan` turun; **tidak** dibuang |
 | `smartmoney` | Ticker | data/smartmoney.csv | yfinance holders kosong | skor smart money = 0 (netral), bukan NaN |
@@ -104,7 +106,7 @@ Dikelompokkan supaya dashboard bisa menyembunyikan grup yang tidak dibutuhkan.
 
 **Quality**: `ROIC`, `ROE`, `GrossMargin`, `GM_Stabilitas5T`, `NetDebt_EBITDA`, `Akrual`, `EPS_Variabilitas`, `F_Score`, `Z_Altman`, `OCF_Laba`, `Z_Quality`
 
-**Momentum**: `Ret12_1`, `Ret6`, `Vol12`, `Mom_RiskAdj`, `Z_Momentum`
+**Momentum**: `Ret12_1`, `Ret6_1` (%), `Mom_RiskAdj` (return ÷ `Vol1T`), `Z_Momentum`, `RS_Rating` (1–99)
 
 **Low-Vol**: `Vol1T`, `Beta`, `MaxDD1T`, `Z_LowVol`
 
@@ -136,8 +138,10 @@ menerjemahkan angka.
 | `INSIDER-JUAL` | Insider net jual > $10 juta dalam 90 hari, bukan 10b5-1 | ⚠️ |
 | `TIPIS` | Nilai transaksi < $10 juta/hari | ✅ → HINDARI |
 | `EARNINGS-DEKAT` | ≤ 5 hari bursa | → TUNGGU-LAPKEU |
-| `DATA-KURANG` | > 3 metrik inti kosong | Keyakinan −20 |
-| `SEKTOR-KECIL` | Pembanding sektor < 5 | Keyakinan −10 |
+| `DATA-KURANG` | Fase 1: histori < 1 tahun sehingga Momentum/Low-Vol kosong. Mulai Fase 2: juga > 3 metrik inti kosong | Keyakinan −20 |
+| `SEKTOR-KECIL` | Pembanding sektor < 5, z-score diukur terhadap universe | Keyakinan −10 |
+| `BASI` | Bar terakhir lebih tua dari tanggal data universe (dihentikan perdagangannya, akan delisting) | ⚠️ |
+| `GAGAL-UNDUH` | Yahoo tidak punya data ticker ini (mis. CWEN-A, kelas saham yang tidak dimuat Yahoo) | Baris tetap ada, semua kolom kosong |
 
 Flag ⚠️ tidak mengubah status, hanya tampil — sama dengan IDX: pembaca yang
 memutuskan.
@@ -151,7 +155,7 @@ python screener.py --dari-csv hasil/semua.csv --min-skor 70 --output hasil/panta
 python screener.py --dari-csv hasil/semua.csv --max-ev-ebitda 10 --min-fcf-yield 5 --min-fscore 6 --output hasil/value.csv
 python screener.py --dari-csv hasil/semua.csv --min-roic 15 --max-akrual 0.05 --min-fscore 7 --output hasil/quality.csv
 python screener.py --sektor Technology Healthcare --min-insider-net 1 --urut Skor
-python screener.py --tickers tickers/watchlist.txt --rezim netral   # paksa rezim untuk membandingkan
+python screener.py --tickers tickers/watchlist.txt --rezim netral   # paksa rezim untuk membandingkan (Fase 4)
 python analisa.py NVDA --output analisa/NVDA.md
 python analisa_smc.py --dari-csv hasil/akumulasi.csv --output hasil/akumulasi_smc.csv
 python uji_winrate.py                                # + pembanding SPY, QUAL, MTUM

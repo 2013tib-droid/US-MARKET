@@ -50,8 +50,8 @@ selalu memilih bank dan energi, faktor Quality selalu memilih software.
 |---|---|---|---|
 | **Value** | EV/EBITDA (rendah), P/E forward (rendah), FCF yield (tinggi), P/B (rendah — bobot kecil) | SEC XBRL + yfinance | P/B nyaris tidak berarti untuk perusahaan aset tak berwujud (software); bobotnya 10% dari faktor ini |
 | **Quality** | ROIC (tinggi), gross margin (tinggi & stabil 5 tahun), Net debt/EBITDA (rendah), akrual = (Laba − OCF)/Aset (rendah), variabilitas EPS (rendah) | SEC XBRL | Akrual adalah pendeteksi "laba kertas" paling sederhana dan paling teruji |
-| **Momentum** | Return 12 bulan **dikurangi 1 bulan terakhir** (12-1), return 6 bulan, keduanya dibagi volatilitas 12 bulan (*risk-adjusted*) | Harga harian | Bulan terakhir di-skip karena ada efek pembalikan jangka pendek (Jegadeesh 1990) |
-| **Low Volatility** | Volatilitas harian 1 tahun (rendah), beta vs SPX (rendah), max drawdown 1 tahun (kecil) | Harga harian | Dipakai sebagai **overlay rezim**, bukan penambah skor di pasar bullish |
+| **Momentum** | Return 12 bulan **dikurangi 1 bulan terakhir** (12-1) dan return 6-1 bulan, keduanya dibagi volatilitas 1 tahun (*risk-adjusted*). Z-score keduanya dirata-rata | Harga harian, disesuaikan dividen | Bulan terakhir di-skip karena ada efek pembalikan jangka pendek (Jegadeesh 1990). Konstruksinya mengikuti MSCI Momentum Index |
+| **Low Volatility** | Volatilitas harian 1 tahun (rendah), beta vs SPY dari **return mingguan 2 tahun** (rendah), max drawdown 1 tahun (kecil) | Harga harian | Dipakai sebagai **overlay rezim**, bukan penambah skor di pasar bullish. Beta harian ditolak setelah diuji: terlalu berisik, lihat catatan Fase 1 di roadmap |
 | **Shareholder Yield** | (Dividen + buyback − penerbitan saham) / market cap | SEC XBRL (cash flow statement) | Lebih jujur dari dividend yield |
 | **Growth & Revisi** | Pertumbuhan EPS & revenue YoY dan 3 tahun; arah revisi target harga analis 3 bulan; earnings surprise kuartal terakhir | yfinance (terbatas) | Revisi estimasi konsensus (I/B/E/S, Zacks) **berbayar**. Yang gratis: target harga rata-rata & jumlah rekomendasi dari yfinance — proksi kasar, ditandai sebagai proksi |
 | **Size** | log(market cap) — hanya untuk tilt ke mid cap dalam universe S&P 1500 | yfinance | Tidak masuk skor komposit; hanya kolom |
@@ -119,8 +119,13 @@ Faktor menjawab "saham apa". Timing menjawab "sekarang atau nanti":
 
 - **Trend template** (Minervini): harga > MA50 > MA150 > MA200; MA200 naik ≥ 1
   bulan; harga ≥ 25% di atas low 52 minggu; ≤ 25% di bawah high 52 minggu.
-- **Relative strength line** vs S&P 500 (harga saham ÷ SPX) membuat high baru
+- **Relative strength line** vs S&P 500 (harga saham ÷ SPY) membuat high baru
   sebelum harganya sendiri = kekuatan tersembunyi.
+- **RS rating** 1–99 ala IBD: peringkat persentil return tertimbang
+  (40% tiga bulan terakhir, masing-masing 20% untuk tiga kuartal sebelumnya)
+  terhadap seluruh universe. Syarat ke-8 trend template Minervini adalah RS
+  rating ≥ 70. Beda dengan Z_Momentum: lintas universe, bukan per sektor,
+  dan tidak dibagi volatilitas.
 - **Volume**: rata-rata 20 hari (dalam **dollar**, bukan lembar) untuk
   likuiditas; spike ≥ 1,5× di hari naik = konfirmasi.
 - **Earnings dalam ≤ 5 hari bursa** = jangan masuk sebelum lapkeu (gap 10–20%

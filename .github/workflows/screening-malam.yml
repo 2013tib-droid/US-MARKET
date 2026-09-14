@@ -1,0 +1,109 @@
+name: Screening Malam
+
+on:
+  schedule:
+    # 22:17 UTC = 05:17 WIB, Senin–Jumat (tanggal UTC = tanggal New York pada
+    # jam ini). NYSE tutup 20:00 UTC saat DST dan 21:00 UTC di luar DST, jadi
+    # jadwal ini selalu ≥ 1 jam setelah tutup tanpa perlu dua cron. Menit 17
+    # menghindari puncak antrean cron GitHub di menit 00.
+    - cron: "17 22 * * 1-5"
+  workflow_dispatch:
+  push:
+    branches: [main, "fase-*"]
+    # Commit hasil oleh bot memakai GITHUB_TOKEN dan tidak memicu run baru,
+    # tapi commit dokumen atau daftar ticker oleh manusia juga tidak perlu.
+    paths-ignore: ["hasil/**", "docs/**", "**.md", "tickers/**"]
+
+permissions:
+  contents: write
+
+# Nama grup sama dengan repo Screening-Saham: setiap workflow yang commit ke
+# repo ini wajib memakainya supaya dua run tidak berebut push.
+concurrency:
+  group: tulis-repo
+  cancel-in-progress: false
+
+jobs:
+  screening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install dependensi
+        run: pip install -r requirements.txt
+
+      # Run terjadwal di hari libur NYSE dilewati; run manual dan push selalu jalan.
+      - name: Cek hari bursa
+        id: bursa
+        run: python scripts/cek_hari_bursa.py >> "$GITHUB_OUTPUT"
+
+      # continue-on-error: kalau Wikipedia sedang rewel, atau tabelnya tidak
+      # wajar, berkas tickers/*.csv versi commit terakhir tetap dipakai.
+      - name: Perbarui universe
+        if: steps.bursa.outputs.jalan == 'true'
+        continue-on-error: true
+        run: python scripts/perbarui_universe.py
+
+      - name: Ambil harga & hitung faktor
+        if: steps.bursa.outputs.jalan == 'true'
+        run: python screener.py --output hasil/semua.csv --meta hasil/meta.json --diam
+
+      # Daftar pantau timing: likuid, trend template lolos, RS rating ≥ 70
+      # (syarat ke-8 trend template Minervini), tanpa flag apa pun, diurut
+      # dari momentum terkuat di sektornya. Ini BUKAN rekomendasi beli: skor
+      # komposit dan status AKUMULASI baru ada di Fase 4.
+      - name: Saringan tren
+        if: steps.bursa.outputs.jalan == 'true'
+        run: >
+          python screener.py --dari-csv hasil/semua.csv
+          --likuid --trend-template --min-rs-rating 70 --tanpa-flag
+          --urut Z_Momentum --output hasil/tren.csv --diam
+
+      # Pola commit disalin dari Screening-Saham, termasuk alasannya: coba
+      # push sampai tiga kali, dan saat ditolak selaraskan ke remote dengan
+      # reset + tulis ulang berkas hasil, bukan rebase. Isi hasil/ dan
+      # tickers/ ditulis ulang utuh tiap run, jadi tidak ada yang perlu
+      # digabung baris per baris; rebase atas dua tabel 1.500 baris yang
+      # ditulis terpisah hanya menghasilkan konflik.
+      - name: Commit hasil
+        if: steps.bursa.outputs.jalan == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add hasil/ tickers/
+          if git diff --cached --quiet; then
+            echo "Tidak ada perubahan data, tidak ada yang di-commit."
+            exit 0
+          fi
+          pesan="Hasil screening $(TZ=Asia/Jakarta date '+%Y-%m-%d %H:%M WIB')"
+          git commit -m "$pesan"
+
+          simpan="$(mktemp -d)"
+          cp -r hasil "$simpan/hasil"
+          cp -r tickers "$simpan/tickers"
+
+          for percobaan in 1 2 3; do
+            if git push; then
+              echo "Berhasil didorong pada percobaan ke-$percobaan."
+              exit 0
+            fi
+            echo "Push ditolak pada percobaan ke-$percobaan — menyelaraskan ke remote."
+            git fetch origin "$GITHUB_REF_NAME" || { echo "Gagal mengambil keadaan remote." >&2; exit 1; }
+            git reset --hard FETCH_HEAD
+            cp -r "$simpan/hasil/." hasil/
+            cp -r "$simpan/tickers/." tickers/
+            git add hasil/ tickers/
+            if git diff --cached --quiet; then
+              echo "Run lain sudah menulis hasil yang sama persis."
+              exit 0
+            fi
+            git commit -m "$pesan"
+          done
+          echo "Push tetap gagal setelah 3 percobaan." >&2
+          exit 1

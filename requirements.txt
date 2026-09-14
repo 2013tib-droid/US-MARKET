@@ -2,9 +2,13 @@
 # "jalan di sini, rusak di CI" harus bisa dibedakan dari perubahan perilaku
 # sumber data. Naikkan versinya secara sadar, satu per satu.
 #
-# Belum dipakai kode apa pun (Fase 0 = dokumen). Versi requests dan
-# pandas_market_calendars diverifikasi ulang saat Fase 1 dimulai.
+# Versi diperiksa di PyPI pada 14 Sep 2026.
 yfinance==1.7.0
 pandas==3.0.5
-requests==2.32.5
-pandas_market_calendars==5.1.1
+numpy==2.5.3
+requests==2.34.2
+# lxml: parser HTML untuk pandas.read_html (tabel konstituen di Wikipedia).
+lxml==6.1.3
+# Kalender NYSE: libur, tutup setengah hari, jam tutup per tanggal. Dipakai
+# untuk memutuskan apakah bar hari ini sudah final.
+pandas_market_calendars==5.4.0
