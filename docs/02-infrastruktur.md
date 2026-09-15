@@ -90,8 +90,15 @@ pernah jalan karena run screening terjadwal (terlambat 2 jam) memegang grup
 itu. Tabrakan push antar-workflow ditangani langkah commit masing-masing.
 
 Cron GitHub tidak tepat waktu. Run terjadwal pertama (22:17 UTC) baru jalan
-00:37 UTC. Itu tidak mengubah data (tetap penutupan hari itu), hanya jam
-dashboard diperbarui.
+00:37 UTC — dan keterlambatan itu ternyata mengubah data. Setelah tengah
+malam UTC, Yahoo mengirim bar harian sesi terakhir dengan Open dan Volume
+tapi tanpa Close/High/Low; bar itu terbuang dan tabel diam-diam tertinggal
+satu sesi (diamati 15 Sep 2026 untuk bar 14 Sep). Sejak itu `harga.py`
+menambal penutupan yang kosong dari bar 1 jam hari yang sama (median selisih
+0,02% dari penutupan resmi), mencatatnya di `meta.json`
+(`bar_ditambal_dari_data_per_jam`), dan menandai `tertinggal_sesi` bila
+tabel tetap lebih tua dari sesi final terakhir menurut kalender NYSE.
+Dashboard menampilkan keduanya.
 
 ## 4. Struktur data
 

@@ -45,6 +45,7 @@ class Panel:
     volume: pd.DataFrame
     gagal: list[str]
     bar_dibuang: str | None = None  # tanggal bar yang dibuang karena belum final
+    bar_ditambal: str | None = None  # "YYYY-MM-DD: N ticker" bila penutupan diambil dari data per jam
 
     @property
     def tickers(self) -> list[str]:
@@ -139,8 +140,90 @@ def unduh(tickers: list[str], periode: str = "2y", ukuran_batch: int = 200,
     gabungan = {nama: df.loc[:, ~df.columns.duplicated()] for nama, df in gabungan.items()}
     # Baris yang kosong untuk semua ticker (mis. tanggal yang hanya muncul
     # di satu batch karena perbedaan jam unduh) tidak berarti apa pun.
+    # Urutannya penting: buang bar yang sesinya belum tuntas DULU, baru tambal
+    # bar final yang penutupannya kosong, baru buang baris yang tetap kosong.
+    dibuang = buang_bar_belum_final(gabungan, sekarang)
+    ditambal = tambal_bar_terakhir(gabungan, ambil_per_jam)
     ada = gabungan["tutup"].notna().any(axis=1)
     gabungan = {nama: df.loc[ada] for nama, df in gabungan.items()}
+    return Panel(**gabungan, gagal=sisa, bar_dibuang=dibuang, bar_ditambal=ditambal)
 
-    dibuang = buang_bar_belum_final(gabungan, sekarang)
-    return Panel(**gabungan, gagal=sisa, bar_dibuang=dibuang)
+
+def ambil_per_jam(tickers: list[str], ukuran_batch: int = 200) -> dict[str, pd.DataFrame]:
+    """Bar 1 jam lima hari terakhir (sesi reguler), dipecah per kolom seperti
+    pisah_kolom. Indeks dikonversi ke jam New York."""
+    potongan = []
+    for i in range(0, len(tickers), ukuran_batch):
+        try:
+            mentah = yf.download(tickers[i:i + ukuran_batch], period="5d", interval="1h",
+                                 auto_adjust=False, group_by="column", threads=True,
+                                 progress=False, prepost=False, multi_level_index=True, timeout=30)
+        except Exception as e:
+            log.warning("Unduh data per jam gagal (%s): %s", type(e).__name__, e)
+            continue
+        if mentah is not None and not mentah.empty:
+            potongan.append({k: mentah[k] for k in ("Open", "High", "Low", "Close")})
+    if not potongan:
+        return {}
+    return {k: pd.concat([p[k] for p in potongan], axis=1) for k in ("Open", "High", "Low", "Close")}
+
+
+# Bar terakhir dianggap "tidak lengkap" bila lebih dari separuh ticker yang
+# punya volume untuk tanggal itu tidak punya harga penutupan.
+AMBANG_TIDAK_LENGKAP = 0.5
+
+
+def tambal_bar_terakhir(bagian: dict[str, pd.DataFrame], ambil=ambil_per_jam) -> str | None:
+    """Isi penutupan bar terakhir yang kosong dari bar 1 jam hari yang sama.
+
+    Diamati 15 Sep 2026: setelah tengah malam UTC, Yahoo mengirim bar harian
+    14 Sep dengan Open dan Volume, tapi Close, High, Low, dan Adj Close
+    kosong — padahal pukul 21:05 UTC semuanya ada. Tanpa penambal, baris itu
+    terbuang dan tabel diam-diam tertinggal satu sesi setiap kali cron
+    GitHub terlambat melewati tengah malam UTC (pagi itu 2 jam 20 menit).
+
+    Penutupan bar 1 jam terakhir adalah transaksi terakhir sebelum 16:00 ET,
+    bukan harga lelang penutupan resmi. Diukur terhadap penutupan resmi 14 Sep
+    untuk 1.520 ticker: median selisih 0,02%, 95% ticker ≤ 0,11%, terbesar
+    0,96% (STX). Adj Close bar terakhir = Close, karena penyesuaian dividen
+    hanya mengubah histori sebelum ex-date.
+    """
+    tutup, volume = bagian["tutup"], bagian["volume"]
+    if tutup.empty:
+        return None
+    akhir = tutup.index[-1]
+    ber_volume = volume.loc[akhir].notna() & (volume.loc[akhir] > 0)
+    kosong = ber_volume & tutup.loc[akhir].isna()
+    if ber_volume.sum() == 0 or kosong.sum() / ber_volume.sum() <= AMBANG_TIDAK_LENGKAP:
+        return None
+    per_jam = ambil(list(kosong.index[kosong]))
+    if not per_jam:
+        return None
+    idx = pd.DatetimeIndex(per_jam["Close"].index)
+    if idx.tz is not None:
+        idx = idx.tz_convert("America/New_York")
+    hari = idx.normalize().tz_localize(None) == akhir
+    if not hari.any():
+        return None
+    jam = {k: v.loc[hari] for k, v in per_jam.items()}
+    diisi = 0
+    for t in kosong.index[kosong]:
+        if t not in jam["Close"].columns:
+            continue
+        c = jam["Close"][t].dropna()
+        if c.empty:
+            continue
+        bagian["tutup"].loc[akhir, t] = float(c.iloc[-1])
+        bagian["tutup_adj"].loc[akhir, t] = float(c.iloc[-1])
+        if pd.isna(bagian["tinggi"].loc[akhir, t]):
+            bagian["tinggi"].loc[akhir, t] = float(jam["High"][t].max())
+        if pd.isna(bagian["rendah"].loc[akhir, t]):
+            bagian["rendah"].loc[akhir, t] = float(jam["Low"][t].min())
+        if pd.isna(bagian["buka"].loc[akhir, t]):
+            bagian["buka"].loc[akhir, t] = float(jam["Open"][t].dropna().iloc[0])
+        diisi += 1
+    if not diisi:
+        return None
+    log.warning("Bar %s tidak lengkap dari Yahoo: penutupan %d ticker diambil dari data per jam",
+                akhir.date(), diisi)
+    return f"{akhir.date().isoformat()}: {diisi} ticker"

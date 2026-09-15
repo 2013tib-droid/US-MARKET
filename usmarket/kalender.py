@@ -71,3 +71,14 @@ def tanggal_et(sekarang: datetime | None = None) -> date:
     """Tanggal kalender di New York saat ini."""
     sekarang = sekarang or datetime.now(timezone.utc)
     return sekarang.astimezone(ET).date()
+
+
+def sesi_final_terakhir(sekarang: datetime | None = None) -> date:
+    """Tanggal sesi NYSE terakhir yang barnya sudah boleh dianggap final."""
+    sekarang = sekarang or datetime.now(timezone.utc)
+    hari = tanggal_et(sekarang)
+    for _ in range(15):
+        if adalah_hari_bursa(hari) and not bar_belum_final(hari, sekarang):
+            return hari
+        hari -= timedelta(days=1)
+    return hari

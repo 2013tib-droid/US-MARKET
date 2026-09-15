@@ -43,3 +43,12 @@ def test_bar_hari_lalu_final():
 def test_tanggal_et_berbeda_dari_tanggal_utc():
     # 02:00 UTC Selasa masih Senin malam di New York.
     assert kalender.tanggal_et(utc(2026, 9, 15, 2, 0)) == date(2026, 9, 14)
+
+
+def test_sesi_final_terakhir():
+    # Selasa 15 Sep 2026 01:04 UTC = Senin malam di New York: sesi Senin sudah final.
+    assert kalender.sesi_final_terakhir(utc(2026, 9, 15, 1, 4)) == date(2026, 9, 14)
+    # Senin 14 Sep 18:00 UTC, sesi berjalan: yang final masih Jumat 11 Sep.
+    assert kalender.sesi_final_terakhir(utc(2026, 9, 14, 18, 0)) == date(2026, 9, 11)
+    # Selasa 8 Sep 12:00 UTC, sehari setelah Labor Day: final terakhir Jumat 4 Sep.
+    assert kalender.sesi_final_terakhir(utc(2026, 9, 8, 12, 0)) == date(2026, 9, 4)

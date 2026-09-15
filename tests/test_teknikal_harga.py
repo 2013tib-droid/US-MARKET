@@ -60,3 +60,30 @@ def test_bar_sesi_berjalan_dibuang():
     bagian2 = {"tutup": pd.DataFrame({"AAPL": [1.0, 2.0]}, index=idx)}
     malam = datetime(2026, 9, 11, 22, 17, tzinfo=timezone.utc)
     assert harga.buang_bar_belum_final(bagian2, malam) is None
+
+
+def test_bar_terakhir_tanpa_penutupan_ditambal_dari_data_per_jam():
+    idx = pd.DatetimeIndex(["2026-09-11", "2026-09-14"])
+    def df(a, b):
+        return pd.DataFrame({"AAPL": [a[0], a[1]], "SPY": [b[0], b[1]]}, index=idx)
+    bagian = {"buka": df((327.0, 334.8), (760.0, 759.0)), "tinggi": df((336.0, np.nan), (766.0, np.nan)),
+              "rendah": df((326.0, np.nan), (757.0, np.nan)), "tutup": df((332.27, np.nan), (764.29, np.nan)),
+              "tutup_adj": df((332.27, np.nan), (764.29, np.nan)), "volume": df((5e7, 3.9e7), (4.5e7, 4.4e7))}
+    jam_idx = pd.DatetimeIndex(["2026-09-14 09:30", "2026-09-14 15:30"]).tz_localize("America/New_York")
+    per_jam = {"Open": pd.DataFrame({"AAPL": [333.2, 334.4], "SPY": [758.8, 761.7]}, index=jam_idx),
+               "High": pd.DataFrame({"AAPL": [335.5, 334.9], "SPY": [763.5, 762.0]}, index=jam_idx),
+               "Low": pd.DataFrame({"AAPL": [331.3, 332.9], "SPY": [757.9, 760.1]}, index=jam_idx),
+               "Close": pd.DataFrame({"AAPL": [333.0, 333.05], "SPY": [759.6, 760.77]}, index=jam_idx)}
+    catatan = harga.tambal_bar_terakhir(bagian, ambil=lambda t: per_jam)
+    assert catatan == "2026-09-14: 2 ticker"
+    assert bagian["tutup"].loc["2026-09-14", "AAPL"] == 333.05
+    assert bagian["tutup_adj"].loc["2026-09-14", "SPY"] == 760.77
+    assert bagian["tinggi"].loc["2026-09-14", "AAPL"] == 335.5
+    assert bagian["buka"].loc["2026-09-14", "AAPL"] == 334.8  # open harian yang ada tidak ditimpa
+
+
+def test_bar_lengkap_tidak_ditambal():
+    idx = pd.DatetimeIndex(["2026-09-11", "2026-09-14"])
+    bagian = {k: pd.DataFrame({"AAPL": [1.0, 2.0]}, index=idx)
+              for k in ("buka", "tinggi", "rendah", "tutup", "tutup_adj", "volume")}
+    assert harga.tambal_bar_terakhir(bagian, ambil=lambda t: (_ for _ in ()).throw(AssertionError)) is None

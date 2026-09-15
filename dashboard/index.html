@@ -984,6 +984,12 @@ function tulisPembaruan() {
   if (w) bagian.push(`diperbarui ${w}`);
   const f = waktuWIB(m.fundamental_diperbarui);
   if (f) bagian.push(`laporan keuangan ${f}`);
+  if (m.tertinggal_sesi) {
+    bagian.push(`⚠ penutupan ${tanggalPanjang(m.sesi_final_terakhir)} belum tersedia dari Yahoo`);
+    document.getElementById("titik").classList.add("basi");
+  } else if (m.bar_ditambal_dari_data_per_jam) {
+    bagian.push("penutupan terakhir dari data per jam");
+  }
   el.textContent = bagian.join(" · ");
   // Lebih dari 4 hari tanpa pembaruan = ada run malam yang terlewat
   // (akhir pekan panjang paling lama 3 hari).
