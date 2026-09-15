@@ -12,21 +12,33 @@ on:
     branches: [main, "fase-*"]
     # Commit hasil oleh bot memakai GITHUB_TOKEN dan tidak memicu run baru,
     # tapi commit dokumen atau daftar ticker oleh manusia juga tidak perlu.
-    paths-ignore: ["hasil/**", "docs/**", "**.md", "tickers/**"]
+    paths-ignore: ["hasil/**", "docs/**", "**.md", "tickers/**", "data/**"]
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+  # Disyaratkan actions/deploy-pages untuk mencari artifact lewat API Actions
+  # (pelajaran dari Screening-Saham: blok permissions eksplisit menyetel yang
+  # tidak disebut menjadi none).
+  actions: read
 
-# Nama grup sama dengan repo Screening-Saham: setiap workflow yang commit ke
-# repo ini wajib memakainya supaya dua run tidak berebut push.
+# Satu grup per workflow penulis: dua run screening tidak boleh berebut
+# push hasil/. Workflow fundamental punya grupnya sendiri (tulis-data) —
+# alasannya di fundamental-mingguan.yml.
 concurrency:
-  group: tulis-repo
+  group: tulis-hasil
   cancel-in-progress: false
 
 jobs:
+  # Job screening sengaja TIDAK memakai environment github-pages: environment
+  # itu dibatasi ke branch default dan diperiksa sebelum job jalan, jadi run
+  # dari branch fase-* akan gagal seketika. Deploy dipisah ke job `deploy`.
   screening:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      jalan: ${{ steps.bursa.outputs.jalan }}
     steps:
       - uses: actions/checkout@v7
 
@@ -55,15 +67,42 @@ jobs:
         run: python screener.py --output hasil/semua.csv --meta hasil/meta.json --diam
 
       # Daftar pantau timing: likuid, trend template lolos, RS rating ≥ 70
-      # (syarat ke-8 trend template Minervini), tanpa flag apa pun, diurut
+      # (syarat ke-8 trend template Minervini), tanpa flag berat, diurut
       # dari momentum terkuat di sektornya. Ini BUKAN rekomendasi beli: skor
       # komposit dan status AKUMULASI baru ada di Fase 4.
       - name: Saringan tren
         if: steps.bursa.outputs.jalan == 'true'
         run: >
           python screener.py --dari-csv hasil/semua.csv
-          --likuid --trend-template --min-rs-rating 70 --tanpa-flag
+          --likuid --trend-template --min-rs-rating 70 --tanpa-flag-berat
           --urut Z_Momentum --output hasil/tren.csv --diam
+
+      # Saringan fundamental (Fase 2). Keduanya: likuid, tanpa flag berat
+      # (DISTRES, RESTATEMENT, F-RENDAH, …), data cukup dipercaya
+      # (Keyakinan ≥ 70), dan Piotroski ≥ 6 supaya "murah" atau "berkualitas"
+      # tidak berasal dari fundamental yang sedang memburuk. Z ≥ 1 = satu
+      # simpangan di atas rata-rata sektornya.
+      - name: Saringan value & quality
+        if: steps.bursa.outputs.jalan == 'true'
+        run: |
+          python screener.py --dari-csv hasil/semua.csv --likuid --tanpa-flag-berat \
+            --min-keyakinan 70 --min-fscore 6 --min-z-value 1 --urut Z_Value \
+            --output hasil/value.csv --diam
+          python screener.py --dari-csv hasil/semua.csv --likuid --tanpa-flag-berat \
+            --min-keyakinan 70 --min-fscore 6 --min-z-quality 1 --urut Z_Quality \
+            --output hasil/quality.csv --diam
+
+      # Run di branch fitur (fase-*) tidak meng-commit hasil/: main menerima
+      # commit hasil tiap malam, jadi hasil yang juga di-commit di branch
+      # fitur membuat pull request-nya konflik di hasil/*.csv. Hasil run
+      # branch fitur diunggah sebagai artifact untuk diperiksa.
+      - name: Unggah hasil (branch fitur)
+        if: steps.bursa.outputs.jalan == 'true' && github.ref_name != github.event.repository.default_branch
+        uses: actions/upload-artifact@v7
+        with:
+          name: hasil-${{ github.ref_name }}
+          path: hasil/
+          retention-days: 14
 
       # Pola commit disalin dari Screening-Saham, termasuk alasannya: coba
       # push sampai tiga kali, dan saat ditolak selaraskan ke remote dengan
@@ -72,7 +111,7 @@ jobs:
       # digabung baris per baris; rebase atas dua tabel 1.500 baris yang
       # ditulis terpisah hanya menghasilkan konflik.
       - name: Commit hasil
-        if: steps.bursa.outputs.jalan == 'true'
+        if: steps.bursa.outputs.jalan == 'true' && github.ref_name == github.event.repository.default_branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -107,3 +146,37 @@ jobs:
           done
           echo "Push tetap gagal setelah 3 percobaan." >&2
           exit 1
+
+      # Situs = dashboard/index.html + folder hasil/ di sebelahnya; dashboard
+      # membaca CSV lewat fetch relatif, jadi tidak ada build step.
+      - name: Susun situs dashboard
+        if: steps.bursa.outputs.jalan == 'true'
+        run: |
+          mkdir -p _site
+          cp dashboard/index.html _site/
+          cp -r hasil _site/
+
+      - name: Aktifkan & konfigurasi GitHub Pages
+        if: steps.bursa.outputs.jalan == 'true'
+        uses: actions/configure-pages@v6
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v5
+        if: steps.bursa.outputs.jalan == 'true'
+        with:
+          path: _site
+
+  # Deploy hanya dari branch default (environment github-pages menolak branch
+  # lain) dan hanya bila screening benar-benar jalan (bukan hari libur NYSE).
+  deploy:
+    needs: screening
+    if: needs.screening.outputs.jalan == 'true' && github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy ke GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v5

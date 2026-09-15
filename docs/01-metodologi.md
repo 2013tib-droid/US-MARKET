@@ -48,8 +48,8 @@ selalu memilih bank dan energi, faktor Quality selalu memilih software.
 
 | Faktor | Metrik (arah "bagus") | Sumber data | Catatan |
 |---|---|---|---|
-| **Value** | EV/EBITDA (rendah), P/E forward (rendah), FCF yield (tinggi), P/B (rendah — bobot kecil) | SEC XBRL + yfinance | P/B nyaris tidak berarti untuk perusahaan aset tak berwujud (software); bobotnya 10% dari faktor ini |
-| **Quality** | ROIC (tinggi), gross margin (tinggi & stabil 5 tahun), Net debt/EBITDA (rendah), akrual = (Laba − OCF)/Aset (rendah), variabilitas EPS (rendah) | SEC XBRL | Akrual adalah pendeteksi "laba kertas" paling sederhana dan paling teruji |
+| **Value** | EBITDA/EV 30%, laba/harga 30%, FCF yield 30%, nilai buku/harga 10% — semuanya sebagai *yield* (tinggi = murah). Bank: laba/harga 50%, nilai buku berwujud/harga 50% | SEC XBRL + harga | Yield, bukan kelipatan: P/E patah di laba nol dan terbalik urutannya saat laba negatif. P/B nyaris tidak berarti untuk perusahaan aset tak berwujud; bobotnya kecil. P/E forward butuh estimasi analis dan menyusul di Fase 3 |
+| **Quality** | ROIC 30%, margin kotor 20%, stabilitas margin 5 tahun 15%, utang bersih/EBITDA rendah 15%, akrual = (Laba − OCF)/Aset rendah 20%. Bank: ROE 40%, ROA 30%, stabilitas ROA 5 tahun 30% | SEC XBRL | Akrual adalah pendeteksi "laba kertas" paling sederhana dan paling teruji. ROIC = EBIT × (1 − pajak efektif) ÷ (utang berbunga + ekuitas), **tanpa dikurangi kas**: versi dikurangi kas meledak untuk emiten kaya kas (CVLT 3.475%, PLTR 1.038% pada data 14 Sep 2026). Komponen boleh bolong — perusahaan jasa tidak punya laba kotor — asal minimal 2 (Value) atau 3 (Quality) terisi |
 | **Momentum** | Return 12 bulan **dikurangi 1 bulan terakhir** (12-1) dan return 6-1 bulan, keduanya dibagi volatilitas 1 tahun (*risk-adjusted*). Z-score keduanya dirata-rata | Harga harian, disesuaikan dividen | Bulan terakhir di-skip karena ada efek pembalikan jangka pendek (Jegadeesh 1990). Konstruksinya mengikuti MSCI Momentum Index |
 | **Low Volatility** | Volatilitas harian 1 tahun (rendah), beta vs SPY dari **return mingguan 2 tahun** (rendah), max drawdown 1 tahun (kecil) | Harga harian | Dipakai sebagai **overlay rezim**, bukan penambah skor di pasar bullish. Beta harian ditolak setelah diuji: terlalu berisik, lihat catatan Fase 1 di roadmap |
 | **Shareholder Yield** | (Dividen + buyback − penerbitan saham) / market cap | SEC XBRL (cash flow statement) | Lebih jujur dari dividend yield |
@@ -62,15 +62,34 @@ Sebelum masuk peringkat, tiap emiten lewat **saringan biner** — meniru kolom
 Flag di repo IDX:
 
 - **Piotroski F-score** ≥ 5 dari 9 (profitabilitas, leverage, efisiensi). Di
-  bawah 4 = red flag.
-- **Altman Z-score** untuk non-keuangan: < 1,8 = zona bahaya kebangkrutan.
+  bawah 4 = red flag. Dibandingkan TTM terakhir dengan TTM setahun sebelumnya.
+  Satu penyimpangan dari makalah aslinya: leverage memakai seluruh utang
+  berbunga, bukan hanya utang jangka panjang, karena pemecahan jangka
+  panjang/lancar di XBRL tidak seragam antarperiode. Emiten tanpa utang di
+  kedua periode dianggap lolos komponen itu.
+- **Altman Z-score** untuk non-keuangan, di luar Real Estate dan Utilities.
+  Z < 1,8 **saja** hanya peringatan (`ZONA-BAHAYA`): pada data 14 Sep 2026
+  ia menandai 174 emiten, termasuk VZ, T, TMUS, WMB, KMI, dan ORCL —
+  perusahaan padat modal berperingkat investasi yang disalahbaca rumus
+  manufaktur 1968 itu. Flag berat `DISTRES` butuh konfirmasi: Z < 1,8
+  **dan** EBIT < 1,5× beban bunga (kira-kira wilayah peringkat B/CCC).
+  Hasilnya 69 emiten, antara lain WBD, F, KHC, dan AAL.
 - **OCF / Laba bersih** < 0,6 selama 2 tahun = laba tidak jadi kas.
 - **Dilusi**: jumlah saham beredar naik > 5% YoY tanpa akuisisi = red flag.
 - **Goodwill / Ekuitas** > 100% = neraca hasil akuisisi, rawan impairment.
-- **Going concern / restatement** dalam 10-K terakhir (dari EDGAR full-text
-  search) = hindari.
-- **Bank & asuransi** dinilai terpisah: ROIC, EV/EBITDA, Z-score tidak berlaku.
-  Dipakai ROE, P/TBV, efficiency ratio, CET1 (kalau tersedia di XBRL).
+- **Restatement** — 8-K Item 4.02 (laporan lama tidak bisa diandalkan) dalam
+  400 hari terakhir, dari pencarian teks penuh EDGAR = flag berat.
+- **Going concern** — kalimat baku auditor "…raise substantial doubt about
+  its ability to continue as a going concern" di 10-K/10-Q = **peringatan,
+  bukan flag berat**. Frasa yang lebih longgar diuji dan hanya menangkap
+  kalimat kebijakan akuntansi di laporan emiten sehat, dan bahkan frasa baku
+  tidak bisa membedakan "keraguan itu sudah teratasi". Wajib dibaca manusia.
+- **Bank & asuransi** dinilai terpisah: ROIC, EV/EBITDA, FCF, akrual,
+  Altman Z, dan F-score tidak berlaku (arus kas operasi bank didominasi
+  pergerakan pinjaman dan aset perdagangan; OCF JPM TTM Jun 2026 −$162
+  miliar). Dipakai ROE, ROA, stabilitas ROA, laba/harga, dan nilai buku
+  berwujud/harga. Efficiency ratio, NIM, NPL, dan CET1 tidak tersedia di XBRL
+  non-dimensional; kekurangan itu dicerminkan di Keyakinan (−10).
 
 ### Pilar 3 — Smart money (pengganti bandarmologi)
 
@@ -147,7 +166,7 @@ Lalu saringan bertahap, urutannya penting:
 2. **Likuiditas**: harga ≥ $5, nilai transaksi rata-rata 20 hari ≥ $10 juta,
    market cap ≥ $1 miliar (syarat market cap aktif mulai Fase 2, saat jumlah
    saham beredar tersedia dari SEC).
-3. **Red flag**: buang yang kena flag berat (Z < 1,8, going concern, F-score ≤ 3).
+3. **Red flag**: buang yang kena flag berat (`DISTRES`, `RESTATEMENT`, `F-RENDAH`, `TIPIS`, `SAHAM-JANGGAL`, `GAGAL-UNDUH`).
 4. **Skor** ≥ 70 masuk daftar *kandidat*.
 5. **Timing**: trend template lolos → **AKUMULASI**; belum lolos → **PANTAU**.
 6. **Earnings ≤ 5 hari** → status ditunda jadi **TUNGGU-LAPKEU** apa pun skornya.

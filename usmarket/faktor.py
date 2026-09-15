@@ -104,6 +104,30 @@ def gabung_z(komponen: list[pd.Series], sektor: pd.Series) -> tuple[pd.Series, p
     return z_sektor(rata, sektor)
 
 
+def gabung_z_berbobot(komponen: dict[str, pd.Series], bobot: dict[str, float], sektor: pd.Series,
+                      min_komponen: int, baris: pd.Series | None = None) -> pd.Series:
+    """Rata-rata tertimbang z-score komponen yang tersedia, lalu distandarkan
+    ulang di dalam sektor — hanya untuk `baris` terpilih (mis. hanya emiten
+    non-keuangan), baris lain NaN.
+
+    Beda dengan gabung_z (Momentum/Low-Vol, yang semua komponennya berasal
+    dari histori harga yang sama): komponen fundamental bolong karena alasan
+    yang sah — perusahaan jasa tidak punya laba kotor, REIT tidak punya aset
+    lancar. Syaratnya minimal `min_komponen` terisi; bobot dinormalisasi ke
+    komponen yang ada.
+    """
+    df = pd.concat({k: komponen[k] for k in bobot}, axis=1)
+    w = pd.Series(bobot)
+    ada = df.notna()
+    jumlah_bobot = ada.mul(w, axis=1).sum(axis=1)
+    rata = df.fillna(0).mul(w, axis=1).sum(axis=1) / jumlah_bobot.replace(0, np.nan)
+    rata = rata.where(ada.sum(axis=1) >= min_komponen)
+    if baris is not None:
+        rata = rata.where(baris)
+    z, _ = z_sektor(rata, sektor)
+    return z
+
+
 def hitung_faktor(tabel: pd.DataFrame) -> pd.DataFrame:
     """Tambahkan Mom_RiskAdj, Z_Momentum, Z_LowVol, dan RS_Rating ke tabel
     yang sudah berisi metrik mentah dan kolom Sektor."""

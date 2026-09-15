@@ -25,13 +25,15 @@ from pathlib import Path
 
 import pandas as pd
 
-from usmarket import VERSI_SKEMA, harga, tabel, universe
+from usmarket import VERSI_SKEMA, harga, tabel, universe, valuasi
 
 AKAR = Path(__file__).resolve().parent
 KELUARAN_DEFAULT = AKAR / "hasil" / "semua.csv"
+FUNDAMENTAL = AKAR / "data" / "fundamental.csv"
 
-KOLOM_TAMPIL = ["Sektor", "Harga", "Nilai20H_JutaUSD", "Ret12_1", "Z_Momentum",
-                "RS_Rating", "Vol1T", "Beta", "Z_LowVol", "RSI14", "TrendTemplate", "Flag"]
+KOLOM_TAMPIL = ["Sektor", "Harga", "MCap_MiliarUSD", "PE_TTM", "EV_EBITDA", "ROIC", "F_Score",
+                "Z_Value", "Z_Quality", "Z_Momentum", "Z_LowVol", "RS_Rating", "TrendTemplate",
+                "Keyakinan", "Flag"]
 
 
 def argumen(argv=None):
@@ -57,7 +59,19 @@ def argumen(argv=None):
     f.add_argument("--max-beta", type=float)
     f.add_argument("--sektor", nargs="+", help="Hanya sektor tertentu (nama GICS, mis. 'Information Technology')")
     f.add_argument("--indeks", nargs="+", choices=["SP500", "SP400", "SP600", "NDX", "WATCH"])
+    f.add_argument("--min-z-value", type=float, help="Z_Value minimal")
+    f.add_argument("--min-z-quality", type=float, help="Z_Quality minimal")
+    f.add_argument("--min-fscore", type=float, help="Piotroski F-score minimal (0–9)")
+    f.add_argument("--min-roic", type=float, help="ROIC minimal (%%)")
+    f.add_argument("--max-akrual", type=float, help="Akrual maksimal (%% aset)")
+    f.add_argument("--max-pe", type=float, help="P/E TTM maksimal (laba negatif otomatis gugur)")
+    f.add_argument("--max-ev-ebitda", type=float, help="EV/EBITDA maksimal")
+    f.add_argument("--min-fcf-yield", type=float, help="FCF yield minimal (%%)")
+    f.add_argument("--min-mcap", type=float, help="Market cap minimal (miliar USD)")
+    f.add_argument("--min-keyakinan", type=float, help="Keyakinan data minimal (0–100)")
     f.add_argument("--tanpa-flag", action="store_true", help="Buang semua baris yang punya flag apa pun")
+    f.add_argument("--tanpa-flag-berat", action="store_true",
+                   help="Buang baris dengan flag berat: " + ", ".join(sorted(valuasi.FLAG_BERAT)))
 
     k = p.add_argument_group("keluaran")
     k.add_argument("--urut", default="Z_Momentum", help="Kolom pengurut (default Z_Momentum, terbesar dulu)")
@@ -85,7 +99,11 @@ def saring(df: pd.DataFrame, a) -> pd.DataFrame:
              ("min_z_momentum", "Z_Momentum", ">="), ("min_z_lowvol", "Z_LowVol", ">="),
              ("min_rs_rating", "RS_Rating", ">="), ("min_rsi", "RSI14", ">="),
              ("max_rsi", "RSI14", "<="), ("min_volspike", "VolSpike", ">="),
-             ("max_beta", "Beta", "<=")]
+             ("max_beta", "Beta", "<="), ("min_z_value", "Z_Value", ">="),
+             ("min_z_quality", "Z_Quality", ">="), ("min_fscore", "F_Score", ">="),
+             ("min_roic", "ROIC", ">="), ("max_akrual", "Akrual", "<="), ("max_pe", "PE_TTM", "<="),
+             ("max_ev_ebitda", "EV_EBITDA", "<="), ("min_fcf_yield", "FCF_Yield", ">="),
+             ("min_mcap", "MCap_MiliarUSD", ">="), ("min_keyakinan", "Keyakinan", ">=")]
     for nama, kolom, op in batas:
         nilai = getattr(a, nama)
         if nilai is not None:
@@ -96,6 +114,8 @@ def saring(df: pd.DataFrame, a) -> pd.DataFrame:
         m &= df["Indeks"].fillna("").map(lambda s: any(i in s.split(";") for i in a.indeks))
     if a.tanpa_flag:
         m &= df["Flag"].fillna("").eq("")
+    if a.tanpa_flag_berat:
+        m &= df["Flag"].fillna("").map(lambda s: not (set(s.split(";")) & valuasi.FLAG_BERAT))
     return df[m]
 
 
@@ -117,6 +137,14 @@ def universe_dari_argumen(a) -> pd.DataFrame:
     return universe.muat()
 
 
+def fundamental_diperbarui() -> str | None:
+    meta = FUNDAMENTAL.with_name("fundamental_meta.json")
+    try:
+        return json.loads(meta.read_text(encoding="utf-8")).get("diperbarui")
+    except (OSError, ValueError):
+        return None
+
+
 def tulis_meta(path: Path, hasil: pd.DataFrame, panel: harga.Panel, detik: float):
     flag = hasil["Flag"].fillna("")
     meta = {
@@ -124,12 +152,15 @@ def tulis_meta(path: Path, hasil: pd.DataFrame, panel: harga.Panel, detik: float
         "tanggal_data": panel.tutup.index[-1].date().isoformat(),
         "bar_dibuang_belum_final": panel.bar_dibuang,
         "versi_skema": VERSI_SKEMA,
-        "fase": 1,
+        "fase": 2,
         "jumlah_emiten": int(len(hasil)),
         "gagal_unduh": int(flag.str.contains("GAGAL-UNDUH").sum()),
         "faktor_terisi": int((hasil["Z_Momentum"].notna() & hasil["Z_LowVol"].notna()).sum()),
         "lolos_likuiditas": int((hasil["LolosLikuiditas"] == True).sum()),  # noqa: E712
         "lolos_trend_template": int((hasil["TrendTemplate"] == True).sum()),  # noqa: E712
+        "value_terisi": int(hasil["Z_Value"].notna().sum()),
+        "quality_terisi": int(hasil["Z_Quality"].notna().sum()),
+        "fundamental_diperbarui": fundamental_diperbarui(),
         "durasi_detik": round(detik, 1),
     }
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -151,7 +182,11 @@ def main(argv=None) -> int:
         panel = harga.unduh(list(uni.index) + [tabel.BENCHMARK], periode=a.periode)
         if panel.bar_dibuang:
             print(f"Bar {panel.bar_dibuang} dibuang: sesinya belum tuntas.", file=sys.stderr)
-        hasil = tabel.bangun(uni, panel)
+        fund = pd.read_csv(FUNDAMENTAL, index_col="Ticker") if FUNDAMENTAL.exists() else None
+        if fund is None:
+            print(f"{FUNDAMENTAL.name} belum ada: kolom valuasi & kualitas kosong. "
+                  "Jalankan scripts/perbarui_fundamental.py.", file=sys.stderr)
+        hasil = tabel.bangun(uni, panel, fund)
         if len(uni) < 300:
             print(f"PERHATIAN: Z-score dan RS rating dihitung terhadap {len(uni)} ticker ini saja, "
                   "bukan terhadap universe. Untuk peringkat yang bermakna, jalankan run penuh lalu "

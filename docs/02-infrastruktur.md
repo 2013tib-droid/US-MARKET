@@ -10,7 +10,7 @@ Tidak ada server, tidak ada database, tidak ada langganan.
 |---|---|---|---|---|---|
 | Harga harian & intraday (H1) | **yfinance** | ✅ | ❌ | Tidak resmi; batch `yf.download` 1.500 ticker ± 3–5 menit | Sumber yang sama dengan repo IDX. Ticker AS tanpa suffix (`AAPL`); kelas saham pakai `-` (`BRK-B`) |
 | Fundamental resmi (10-K/10-Q, XBRL) | **SEC EDGAR `companyfacts` API** | ✅ | ❌ tapi **wajib header `User-Agent: nama email`** | 10 request/detik | Data primer, bukan turunan pihak ketiga. Satu request per emiten mengembalikan seluruh histori tag XBRL (`Revenues`, `NetIncomeLoss`, `NetCashProvidedByOperatingActivities`, …). 1.500 emiten ≈ 3–5 menit |
-| Peta ticker → CIK | SEC `company_tickers.json` | ✅ | ❌ | — | Diperbarui tiap run, di-commit ke `data/cik.csv` |
+| Peta ticker → CIK | SEC `company_tickers.json` | ✅ | ❌ | — | Diunduh di awal setiap pembaruan fundamental (satu berkas ± 800 KB); tidak disimpan karena selalu segar. Format ticker kelas saham sama dengan Yahoo (`BRK-B`) |
 | Transaksi insider (Form 4) | SEC EDGAR `submissions` API + XML Form 4 | ✅ | ❌ | 10 req/detik | Alternatif cepat: yfinance `insider_transactions` (lebih ringkas, sudah dibersihkan, tapi tidak lengkap) — dipakai dulu di Fase 3, EDGAR langsung kalau butuh cluster buy |
 | Kepemilikan institusi (13F) | yfinance `institutional_holders`, `major_holders` | ✅ | ❌ | — | Cukup untuk % kepemilikan & jumlah pemegang. Agregasi 13F penuh dari EDGAR ditunda — datanya besar (ribuan filer × ribuan posisi) |
 | Short interest | yfinance `info` (`shortPercentOfFloat`, `shortRatio`, `sharesShort`) | ✅ | ❌ | — | Sumber aslinya FINRA, 2× sebulan |
@@ -54,16 +54,16 @@ kalau suatu hari mau backtest serius, ini yang dibeli).
 ## 3. Pipeline
 
 ```
-[Mingguan / Selasa 06:17 WIB]          [Malam / Sel–Sab 05:17 WIB]
+[Mingguan / Minggu 06:17 WIB]          [Malam / Sel–Sab 05:17 WIB]
                                          cek_hari_bursa.py (libur NYSE → lewati)
                                          perbarui_universe.py (4 halaman
                                            Wikipedia → tickers/*.csv)
                                     ┐    harga.py  (yf.download batch, 2 th)
                                     │    makro.py  (FRED + ^GSPC + ^VIX)
- perbarui_cik.py                    │    faktor.py (z-score sektor, rezim,
-   SEC → data/cik.csv               │              skor komposit)
+ peta CIK (SEC, di dalam skrip)    │    faktor.py (z-score sektor, rezim,
+                                    │              skor komposit)
  perbarui_fundamental.py            ├──▶ screener.py --output hasil/semua.csv
-   SEC companyfacts + yfinance info │    screener.py --dari-csv … → hasil/akumulasi.csv
+   SEC companyfacts + EDGAR FTS     │    screener.py --dari-csv … → hasil/akumulasi.csv
    → data/fundamental.csv           │                            → hasil/pantau.csv
  perbarui_smartmoney.py             │                            → hasil/value.csv
    Form 4 + holders + short         ┘                            → hasil/quality.csv
@@ -72,8 +72,16 @@ kalau suatu hari mau backtest serius, ini yang dibeli).
                                          meta.json → commit → GitHub Pages
 ```
 
-Dua workflow terpisah dengan satu `concurrency: group: tulis-repo` — pola
-yang sudah terbukti di IDX menghindari dua run berebut push.
+Dua workflow terpisah, masing-masing dengan grup concurrency sendiri
+(`tulis-hasil` untuk screening, `tulis-data` untuk fundamental). Rancangan
+awalnya satu grup bersama seperti di IDX, tapi GitHub hanya menyimpan satu run
+yang menunggu per grup: pada 15 Sep 2026 run fundamental dibatalkan tanpa
+pernah jalan karena run screening terjadwal (terlambat 2 jam) memegang grup
+itu. Tabrakan push antar-workflow ditangani langkah commit masing-masing.
+
+Cron GitHub tidak tepat waktu. Run terjadwal pertama (22:17 UTC) baru jalan
+00:37 UTC. Itu tidak mengubah data (tetap penutupan hari itu), hanya jam
+dashboard diperbarui.
 
 ## 4. Struktur data
 
@@ -81,8 +89,8 @@ yang sudah terbukti di IDX menghindari dua run berebut push.
 |---|---|---|
 | `tickers/sp500.csv`, `sp400.csv`, `sp600.csv`, `nasdaq100.csv` | Ticker, Nama, Sektor (GICS), Industri per indeks | Malam (cuma 4 request; murah) |
 | `tickers/watchlist.txt` | Manual: saham di luar indeks yang mau dipantau | Manual |
-| `data/cik.csv` | ticker, CIK, nama resmi | Mingguan |
-| `data/fundamental.csv` | Satu baris per emiten: ~60 kolom XBRL 8 kuartal terakhir + rasio turunan + `sumber`, `periode`, `diperbarui` | Mingguan (earnings season) / bulanan |
+| `data/fundamental.csv` | Satu baris per ticker: angka mentah TTM (atau tahun fiskal) dari XBRL, rasio yang tidak butuh harga, F-score, tag XBRL yang terpakai (`Tag_*`), tanggal going concern dan restatement, `Catatan` bila tidak bisa dihitung | Mingguan (Minggu 06:17 WIB) |
+| `data/fundamental_meta.json` | Waktu pembaruan, jumlah metrik inti terisi, daftar going concern, restatement, dan emiten berhistori pendek | Mingguan |
 | `data/smartmoney.csv` | Insider net 90 hari, cluster buy, % institusi, short % float, short ratio | Mingguan |
 | `data/makro.csv` | Seri harian FRED + rezim yang diturunkan | Malam |
 | `hasil/semua.csv` | Tabel lengkap universe | Malam |

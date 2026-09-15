@@ -44,8 +44,8 @@ dan **Low-Vol** (keduanya hanya butuh harga), `screener.py` versi minimum,
 |---|---|---|
 | ≥ 1.400 emiten dalam ≤ 10 menit di Actions | 1.521 emiten; unduh + hitung 192 detik, seluruh job < 4 menit | ✅ |
 | Momentum & Low-Vol terisi ≥ 95% | 1.509 / 1.521 = 99,2%. Sebelas emiten baru IPO/spin-off < 1 tahun berlabel `DATA-KURANG`; satu (CWEN-A) tidak dimuat Yahoo, berlabel `GAGAL-UNDUH` | ✅ |
-| Run saat pasar buka = run pagi | Logikanya diuji unit test dengan jam buatan, termasuk tutup setengah hari 28 Nov 2025. **Belum diuji dengan run sungguhan saat NYSE buka** (21:30–04:00 WIB) | ⏳ |
-| 3 malam berturut-turut otomatis | Cron hanya jalan dari branch default; menunggu branch `fase-1` digabung ke `main` | ⏳ |
+| Run saat pasar buka = run pagi | Logikanya diuji unit test dengan jam buatan, termasuk tutup setengah hari 28 Nov 2025. Diuji dengan data sungguhan 14 Sep 2026 pukul 20:55 UTC — setelah bel, sebelum jeda final 60 menit: Yahoo sudah mengirim bar 14 Sep, sistem membuangnya dan tabel tetap bertanggal 11 Sep. Run 21:05 UTC memakainya. Run di tengah sesi sungguhan belum pernah dilakukan, tapi jalur kodenya sama | ✅ |
+| 3 malam berturut-turut otomatis | Malam 1 (data 14 Sep): jalan dan sukses, tapi terlambat 2 jam 20 menit dari jadwal karena antrean cron GitHub. Malam 2 dan 3 menyusul | ⏳ 1/3 |
 
 Universe nyatanya ± 1.520, bukan 1.550: 87 dari 102 emiten Nasdaq-100
 juga anggota S&P 500.
@@ -74,6 +74,48 @@ F-score, Z-score, akrual, shareholder yield, kolom `Flag`,
 - F-score untuk 20 emiten dicocokkan dengan hitungan manual: identik.
 - `analisa.py AAPL` menghasilkan laporan yang menyebut basis (TTM/FY),
   periode, dan tag yang terpakai.
+
+**Hasil (15 Sep 2026)**:
+
+| Syarat | Hasil | Status |
+|---|---|---|
+| Metrik inti terisi ≥ 90% non-keuangan | Dari 1.263 emiten non-keuangan: pendapatan 1.240, laba 1.250, OCF 1.244, aset 1.249, ekuitas 1.249, saham 1.238 (98–99%). Bank/asuransi punya jalur sendiri | ✅ |
+| 10 emiten acak, selisih ≤ 2% | Dicocokkan dengan laporan kuartalan Yahoo (sumber independen), **bukan dibaca manual dari 10-K**. 48 dari 50 angka cocok ≤ 2%, median selisih 0,00%. Dua pengecualian: laba MTN (3,0%) dan pendapatan HON (5,3%, karena spin-off Solstice 2025 — kuartal lama di jendela TTM masih memuat bisnis yang sudah dipisah) | ✅ dengan catatan |
+| F-score 20 emiten identik dengan hitungan manual | **Diganti**: hitungan tangan satu kasus lengkap (9 komponen) di `tests/test_fundamental.py`, hasil identik. Mencocokkan 20 emiten dengan tangan tidak dikerjakan | ⚠️ diganti |
+| `analisa.py AAPL` menyebut basis, periode, tag | Ya, lengkap dengan tautan EDGAR | ✅ |
+
+Durasi: pembaruan fundamental ± 200 detik untuk 1.514 CIK; run malam tetap
+± 2 menit karena hanya membaca `data/fundamental.csv`.
+
+**Temuan yang mengubah rancangan**:
+
+1. *companyfacts hanya memuat fakta non-dimensional.* Emiten yang
+   melaporkan angka per segmen atau per kelas saham kehilangan angka
+   totalnya: CAT, Ford, dan GM (utang), APA dan MTH (pendapatan), BRK (jumlah saham sejak
+   2015). Ditangani dengan tag cadangan, total utang dari 10-K terakhir (≤ 200
+   hari), jadwal jatuh tempo utang, jumlah
+   saham setara dari Yahoo, dan flag `UTANG-TAK-TERBACA` — yang kini juga
+   menyala bila ada penerbitan atau pelunasan utang material tanpa saldo
+   yang terbaca (Ford), supaya emiten berutang tidak tampil bebas utang.
+2. *Pencarian teks penuh EDGAR tidak menggabungkan beberapa form.* "8-K"
+   memberi 106 emiten dengan Item 4.02; "8-K,8-K/A" hanya 5. Setiap form kini
+   dicari sendiri.
+3. *Altman Z < 1,8 bukan flag berat.* Lihat Pilar 2 di metodologi:
+   174 emiten, sebagian besar padat modal berperingkat investasi. Flag berat
+   pindah ke `DISTRES` (Z rendah dan bunga tidak tertutup), 69 emiten.
+4. *Frasa going concern longgar salah tangkap.* Hanya kalimat baku auditor
+   yang dipakai, dan flag-nya diturunkan menjadi peringatan.
+5. *ROIC dengan kas dikurangi meledak* untuk emiten kaya kas; modal investasi
+   kini utang + ekuitas.
+6. *Emiten pindah CIK.* XOM terdaftar ulang dengan CIK baru 2115436 pada
+   2026; histori digabung dari CIK lama lewat `CIK_PENDAHULU`. Tujuh emiten
+   lain berhistori pendek (ADIG, HONA, MBGL, MFP, SKT, SPCX, VGNT) — umumnya
+   spin-off atau IPO baru, bukan pindah CIK — dicetak tiap run sebagai
+   kandidat untuk diperiksa.
+
+**Keterbatasan yang diterima**: spin-off dan operasi yang dihentikan di
+dalam jendela TTM (HON); utang dari tag komponen bisa tumpang tindih
+(Keyakinan −10); metrik khusus bank tidak tersedia.
 
 ## Fase 3 — Smart money & Growth/Revisi (± 2 minggu)
 
@@ -124,6 +166,11 @@ harga $0,01), `uji_winrate.py` dengan pembanding SPY / QUAL / MTUM / VLUE,
 **Dibangun**: `dashboard/index.html` (dari IDX + banner rezim + tab),
 `winrate.html`, GitHub Pages, catatan operasional ("Yang perlu sesekali
 dilirik" seperti di README IDX).
+
+**Dimajukan sebagian (15 Sep 2026)**: dashboard, panel detail, GitHub Pages,
+dan uji dashboard sudah jalan bersama Fase 2 atas permintaan pemilik. Yang
+tersisa untuk fase ini: banner rezim, tab Akumulasi/Pantau, `winrate.html`,
+dan catatan operasional.
 
 **Selesai bila**:
 - Dashboard bisa dibuka dari HP, filter jalan, memuat < 3 detik.
