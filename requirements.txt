@@ -12,3 +12,6 @@ lxml==6.1.3
 # Kalender NYSE: libur, tutup setengah hari, jam tutup per tanggal. Dipakai
 # untuk memutuskan apakah bar hari ini sudah final.
 pandas_market_calendars==5.4.0
+# Markdown → HTML untuk halaman docs/ di situs Pages. Murni Python, tanpa
+# dependensi lain; ekstensi "tables" dan "toc" sudah termasuk.
+markdown==3.10.3
