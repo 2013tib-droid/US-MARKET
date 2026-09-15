@@ -1,13 +1,16 @@
 {
-  "diperbarui": "2026-09-15T00:40:06Z",
+  "diperbarui": "2026-09-15T01:03:16Z",
   "tanggal_data": "2026-09-11",
   "bar_dibuang_belum_final": null,
-  "versi_skema": 1,
-  "fase": 1,
+  "versi_skema": 2,
+  "fase": 2,
   "jumlah_emiten": 1521,
   "gagal_unduh": 1,
   "faktor_terisi": 1509,
-  "lolos_likuiditas": 1459,
+  "lolos_likuiditas": 1440,
   "lolos_trend_template": 250,
-  "durasi_detik": 146.6
+  "value_terisi": 1502,
+  "quality_terisi": 1448,
+  "fundamental_diperbarui": "2026-09-15T00:48:51Z",
+  "durasi_detik": 172.8
 }
