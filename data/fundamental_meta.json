@@ -1,5 +1,5 @@
 {
-  "diperbarui": "2026-09-14T21:36:17Z",
+  "diperbarui": "2026-09-15T00:48:51Z",
   "versi_skema": 2,
   "jumlah_ticker": 1521,
   "jumlah_cik": 1513,
@@ -33,5 +33,5 @@
     "SPCX",
     "VGNT"
   ],
-  "durasi_detik": 198.6
+  "durasi_detik": 205.0
 }
