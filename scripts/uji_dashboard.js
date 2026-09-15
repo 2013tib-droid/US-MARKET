@@ -87,7 +87,7 @@ setTimeout(() => {
   const kurang = u.KOLOM.map(k => k.k).filter(k => !u.state.kolomAda.has(k));
   if (kurang.length) console.log(`Info: ${kurang.length} kolom dashboard tidak ada di CSV ini (tampil "–"): ${kurang.join(", ")}`);
 
-  for (const tab of ["tren", "value", "quality", "semua"]) {
+  for (const tab of ["tren", "value", "quality", "smartmoney", "semua"]) {
     u.pilihTab(tab);
     for (const kel of Object.keys(u.KELOMPOK).concat([""])) {
       u.state.kelompok = kel;

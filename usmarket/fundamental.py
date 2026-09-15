@@ -418,6 +418,31 @@ def _std_tahunan(pembilang: Seri, penyebut: Seri | None, instan: Seri | None = N
     return pstdev(rasio) if len(rasio) >= 3 else None
 
 
+def _cagr(tahunan: dict, tahun: int = 3, toleransi: int = 60) -> float | None:
+    """Pertumbuhan majemuk per tahun dari angka tahun fiskal.
+
+    Dihitung dari tahun fiskal, bukan TTM: TTM tiga tahun lalu sering tidak
+    bisa disusun karena kuartalnya tidak lengkap sejauh itu ke belakang.
+    Basis yang nol atau negatif tidak menghasilkan apa-apa — "tumbuh 400%
+    dari rugi" bukan pertumbuhan, dan akar pangkat tiga dari bilangan negatif
+    akan menyesatkan urutan peringkat.
+    """
+    if not tahunan:
+        return None
+    akhir = max(tahunan)
+    kini = tahunan[akhir]
+    awal_ideal = akhir - timedelta(days=365 * tahun)
+    dekat = sorted((e for e in tahunan if abs(_hari(e, awal_ideal)) <= toleransi),
+                   key=lambda e: abs(_hari(e, awal_ideal)))
+    if not dekat or kini is None:
+        return None
+    awal = tahunan[dekat[0]]
+    if awal is None or awal <= 0 or kini <= 0:
+        return None
+    n = _hari(akhir, dekat[0]) / 365.25
+    return (kini / awal) ** (1 / n) - 1 if n > 0 else None
+
+
 def ekstrak(facts: dict, keuangan: bool = False, hari_ini: date | None = None) -> dict:
     """Satu baris fundamental dari JSON companyfacts.
 
@@ -546,6 +571,13 @@ def ekstrak(facts: dict, keuangan: bool = False, hari_ini: date | None = None) -
     r["ROE"] = _bagi(r["Laba"], ekuitas_rata) if ekuitas_rata and ekuitas_rata > 0 else None
     r["Rev_YoY"] = (_bagi(pendapatan, r["Pendapatan_Lalu"]) - 1) if pendapatan and r["Pendapatan_Lalu"] and r["Pendapatan_Lalu"] > 0 else None
     r["Laba_YoY"] = (_bagi(r["Laba"], r["Laba_Lalu"]) - 1) if r["Laba"] is not None and r["Laba_Lalu"] and r["Laba_Lalu"] > 0 else None
+    # Pertumbuhan tiga tahun (faktor Growth, Fase 3). EPS, bukan laba total:
+    # laba yang tumbuh karena saham diterbitkan dua kali lipat bukan
+    # pertumbuhan bagi pemegang saham lama.
+    saham_fy = dil.tahunan()
+    r["Rev_CAGR3"] = _cagr(ss["Pendapatan"].tahunan())
+    r["EPS_CAGR3"] = _cagr({e: laba_fy[e] / saham_fy[e] for e in laba_fy
+                            if saham_fy.get(e) and laba_fy[e] is not None})
     r["Tag_Penyusutan"], r["Tag_EBIT"] = tag_penyusutan, tag_ebit
     r["OCF_Laba"] = _bagi(r["OCF"], r["Laba"]) if r["Laba"] and r["Laba"] > 0 else None
     r["OCF_Laba_Lalu"] = _bagi(r["OCF_Lalu"], r["Laba_Lalu"]) if r["Laba_Lalu"] and r["Laba_Lalu"] > 0 else None

@@ -105,6 +105,7 @@
   .tile[data-tab="tren"]    { --pita: #2a78d6; }
   .tile[data-tab="value"]   { --pita: #17915a; }
   .tile[data-tab="quality"] { --pita: #c07a11; }
+  .tile[data-tab="smartmoney"] { --pita: #a8437a; }
   .tile[data-tab="semua"]   { --pita: #7a6ce0; }
 
   .controls {
@@ -284,6 +285,7 @@
     <button type="button" class="tile aktif" data-tab="tren"><div class="label">Tren kuat</div><div class="value" id="t-tren">–</div><div class="sub">Trend template lolos, RS rating ≥ 70, tanpa flag berat</div></button>
     <button type="button" class="tile" data-tab="value"><div class="label">Murah di sektornya</div><div class="value" id="t-value">–</div><div class="sub">Z Value ≥ 1, F-score ≥ 6, keyakinan data ≥ 70</div></button>
     <button type="button" class="tile" data-tab="quality"><div class="label">Berkualitas di sektornya</div><div class="value" id="t-quality">–</div><div class="sub">Z Quality ≥ 1, F-score ≥ 6, keyakinan data ≥ 70</div></button>
+    <button type="button" class="tile" data-tab="smartmoney"><div class="label">Dibeli orang dalam</div><div class="value" id="t-smartmoney">–</div><div class="sub">Beli bersih Form 4 ≥ $0,5 juta dalam 90 hari, tanpa flag berat</div></button>
     <button type="button" class="tile" data-tab="semua"><div class="label">Emiten dipantau</div><div class="value" id="t-semua">–</div><div class="sub">S&amp;P 500, 400, 600 + Nasdaq-100</div></button>
   </div>
 
@@ -292,6 +294,7 @@
       <button data-tab="tren" class="active">Tren</button>
       <button data-tab="value">Value</button>
       <button data-tab="quality">Quality</button>
+      <button data-tab="smartmoney">Smart money</button>
       <button data-tab="semua">Semua</button>
     </div>
     <div class="pisah"></div>
@@ -301,6 +304,7 @@
       <option value="valuasi">Valuasi</option>
       <option value="kualitas">Kualitas</option>
       <option value="tumbuh">Pertumbuhan</option>
+      <option value="smart">Smart money</option>
       <option value="teknikal">Teknikal</option>
       <option value="">Semua kolom</option>
     </select>
@@ -347,9 +351,9 @@
   <details>
     <summary>Arti kolom &amp; cara pakai</summary>
     <dl>
-      <dt>Klik baris</dt><dd>Membuka panel detail emiten: posisi empat faktor, valuasi dan kualitas
-      dibanding median sektornya, rincian red flag, dan tautan ke laporan di SEC.</dd>
-      <dt>Z Value, Z Quality, Z Momentum, Z Low-Vol</dt><dd>Z-score <strong>di dalam sektornya sendiri</strong>,
+      <dt>Klik baris</dt><dd>Membuka panel detail emiten: posisi enam faktor, valuasi, kualitas, pertumbuhan,
+      dan smart money dibanding median sektornya, rincian red flag, dan tautan ke laporan di SEC.</dd>
+      <dt>Z Value, Z Quality, Z Momentum, Z Low-Vol, Z Growth, Z Smart money</dt><dd>Z-score <strong>di dalam sektornya sendiri</strong>,
       dipangkas di ±3. 0 = rata-rata sektor; +1 = satu simpangan di atasnya. Diwarnai hanya di luar ±1:
       <span class="z z-kuat">+1,20</span> kuat, <span class="z z-lemah">−1,40</span> lemah. Bank dibandingkan
       dengan bank, software dengan software — bukan satu sama lain.
@@ -358,7 +362,21 @@
           <li><strong>Quality</strong>: ROIC, margin kotor, stabilitas margin, utang rendah, akrual rendah.</li>
           <li><strong>Momentum</strong>: return 12 dan 6 bulan sampai sebulan lalu, dibagi volatilitas.</li>
           <li><strong>Low-Vol</strong>: volatilitas, beta, dan penurunan terdalam setahun yang rendah.</li>
+          <li><strong>Growth</strong>: pertumbuhan pendapatan &amp; EPS (setahun dan tiga tahun), arah revisi
+          target analis, dan earnings surprise terakhir.</li>
+          <li><strong>Smart money</strong>: beli bersih orang dalam 90 hari relatif market cap (60%) dan arah
+          kepemilikan institusi (40%); cluster buy menambah +1. Komponen yang kosong dianggap netral.</li>
         </ul></dd>
+      <dt>Insider net $jt, Cluster buy</dt><dd>Beli dikurangi jual orang dalam di pasar terbuka 90 hari terakhir,
+      dari Form 4 di SEC EDGAR. Pemberian saham, eksekusi opsi, dan transaksi rencana 10b5-1 tidak dihitung —
+      yang prediktif adalah pembelian oportunistik. ✓ = ≥ 2 orang dalam berbeda membeli dalam 30 hari.</dd>
+      <dt>Institusi%, Δ Institusi pp, Short% float</dt><dd>Kepemilikan institusi (turunan 13F) dan short interest
+      (turunan FINRA) dari yfinance; perubahan institusi diukur terhadap snapshot mingguan repo ini.</dd>
+      <dt>Revisi target%, Ke target%, Surprise%</dt><dd>Perubahan target harga konsensus tiga bulan, jarak harga
+      sekarang ke target, dan selisih EPS terhadap estimasi di lapkeu terakhir. Semuanya proksi gratis dari
+      yfinance; hanya arah revisinya yang masuk skor.</dd>
+      <dt>Hari ke lapkeu</dt><dd>Hari bursa sampai laporan keuangan berikutnya.
+      <span class="skor sk-lemah">≤ 5</span> = jangan masuk dulu; gap 10–20% dua arah biasa terjadi.</dd>
       <dt>RS</dt><dd>RS rating 1–99 terhadap seluruh universe, ala IBD. 80 = lebih kuat dari 80% saham lain.</dd>
       <dt>F-score</dt><dd>Piotroski 0–9: berapa dari sembilan sisi fundamental yang membaik dari tahun lalu.
       <span class="skor sk-kuat">7+</span> kuat, <span class="skor sk-sedang">4–6</span> campuran,
@@ -384,11 +402,13 @@
       <dt>Nilai $jt</dt><dd>Nilai transaksi rata-rata 20 hari, juta dolar — ukuran likuiditas.</dd>
     </dl>
     <p>Klik judul kolom untuk mengurutkan. Harga diperbarui otomatis tiap malam hari bursa dari penutupan
-    Wall Street (sumber: Yahoo Finance). Laporan keuangan diperbarui tiap Minggu dari SEC EDGAR.</p>
+    Wall Street (sumber: Yahoo Finance). Laporan keuangan, Form 4, kepemilikan institusi, dan short interest
+    diperbarui tiap Minggu dari SEC EDGAR dan yfinance.</p>
   </details>
 
   <footer>
-    Sumber data: Yahoo Finance (harga), SEC EDGAR XBRL (laporan keuangan), Wikipedia (konstituen indeks).
+    Sumber data: Yahoo Finance (harga, institusi, short interest, estimasi analis), SEC EDGAR
+    (laporan keuangan XBRL, Form 4 orang dalam), Wikipedia (konstituen indeks).
     Kode dan metodologi: <a href="https://github.com/2013tib-droid/US-MARKET">github.com/2013tib-droid/US-MARKET</a>.
   </footer>
 </div>
@@ -431,6 +451,20 @@ const KOLOM = [
   { k: "Rev_YoY",          label: "Pendapatan YoY%", angka: true, desimal: 1 },
   { k: "Laba_YoY",         label: "Laba YoY%",    angka: true, desimal: 1 },
   { k: "Dilusi_YoY",       label: "Saham YoY%",   angka: true, desimal: 1 },
+  { k: "Z_Growth",         label: "Z Growth",     angka: true, jenis: "z" },
+  { k: "Rev_CAGR3",        label: "Pendapatan 3th%", angka: true, desimal: 1 },
+  { k: "EPS_CAGR3",        label: "EPS 3th%",     angka: true, desimal: 1 },
+  { k: "Target_Revisi",    label: "Revisi target%", angka: true, desimal: 1 },
+  { k: "Target_Upside",    label: "Ke target%",   angka: true, desimal: 1 },
+  { k: "Surprise_Terakhir", label: "Surprise%",   angka: true, desimal: 1 },
+  { k: "PE_Fwd",           label: "P/E fwd",      angka: true, desimal: 1 },
+  { k: "Z_SmartMoney",     label: "Z Smart money", angka: true, jenis: "z" },
+  { k: "Insider_Net90H_JutaUSD", label: "Insider net $jt", angka: true, desimal: 2 },
+  { k: "Insider_ClusterBuy", label: "Cluster buy", jenis: "ya" },
+  { k: "Institusi_Pct",    label: "Institusi%",   angka: true, desimal: 1 },
+  { k: "Institusi_Delta",  label: "Δ Institusi pp", angka: true, desimal: 2 },
+  { k: "Short_PctFloat",   label: "Short% float", angka: true, desimal: 2 },
+  { k: "Hari_Ke_Earnings", label: "Hari ke lapkeu", angka: true, desimal: 0, jenis: "earnings" },
   { k: "Ret12_1",          label: "Ret 12-1%",    angka: true, desimal: 1 },
   { k: "Vol1T",            label: "Volatilitas%", angka: true, desimal: 1 },
   { k: "Beta",             label: "Beta",         angka: true, desimal: 2 },
@@ -442,15 +476,20 @@ const KOLOM = [
 ];
 const KOLOM_ANGKA_TAMBAHAN = ["MA50", "MA150", "MA200", "High52", "Low52", "Ret6_1", "Mom_RiskAdj",
   "EBITDA_EV", "E_P", "Buyback_Yield", "GM_Stabilitas5T", "ROA_Variabilitas5T", "OCF_Laba",
-  "Cakupan_Bunga", "VolSpike", "ATR14", "RS_vs_SPX", "Bar"];
+  "Cakupan_Bunga", "VolSpike", "ATR14", "RS_vs_SPX", "Bar",
+  "Insider_Beli90H_JutaUSD", "Insider_Jual90H_JutaUSD", "Insider_Pembeli90H",
+  "Insider_Net_PctMCap", "Short_Ratio", "Target_Rata", "Rekom_Rata", "Jumlah_Analis"];
 
 const JANGKAR = ["Ticker", "Nama"];
 const KELOMPOK = {
   ringkas:  ["Sektor", "Harga", "MCap_MiliarUSD", "Z_Value", "Z_Quality", "Z_Momentum", "Z_LowVol", "F_Score", "Flag"],
-  faktor:   ["Sektor", "Z_Value", "Z_Quality", "Z_Momentum", "Z_LowVol", "RS_Rating", "F_Score", "Keyakinan"],
-  valuasi:  ["Sektor", "Harga", "MCap_MiliarUSD", "PE_TTM", "EV_EBITDA", "PB", "FCF_Yield", "DivYield", "Shareholder_Yield", "Z_Value"],
+  faktor:   ["Sektor", "Z_Value", "Z_Quality", "Z_Momentum", "Z_LowVol", "Z_Growth", "Z_SmartMoney", "RS_Rating", "F_Score", "Keyakinan"],
+  valuasi:  ["Sektor", "Harga", "MCap_MiliarUSD", "PE_TTM", "PE_Fwd", "EV_EBITDA", "PB", "FCF_Yield", "DivYield", "Shareholder_Yield", "Z_Value"],
   kualitas: ["Sektor", "ROIC", "ROE", "GrossMargin", "Akrual", "NetDebt_EBITDA", "Z_Altman", "F_Score", "Z_Quality", "Flag"],
-  tumbuh:   ["Sektor", "Rev_YoY", "Laba_YoY", "Dilusi_YoY", "Periode_Lapkeu", "Keyakinan"],
+  tumbuh:   ["Sektor", "Rev_YoY", "Laba_YoY", "Rev_CAGR3", "EPS_CAGR3", "Dilusi_YoY", "Target_Revisi",
+             "Surprise_Terakhir", "Z_Growth", "Periode_Lapkeu"],
+  smart:    ["Sektor", "Insider_Net90H_JutaUSD", "Insider_ClusterBuy", "Institusi_Pct", "Institusi_Delta",
+             "Short_PctFloat", "Z_SmartMoney", "Hari_Ke_Earnings", "Flag"],
   teknikal: ["Harga", "Ret12_1", "RS_Rating", "Z_Momentum", "Vol1T", "Beta", "MaxDD1T", "RSI14", "TrendTemplate", "Nilai20H_JutaUSD"],
 };
 
@@ -474,13 +513,16 @@ const ARTI_FLAG = {
   "GOODWILL": "Goodwill > ekuitas (atau ekuitas negatif): neraca hasil akuisisi, rawan impairment.",
   "SAHAM-JANGGAL": "Jumlah saham tidak konsisten dengan harga; valuasi dikosongkan.",
   "UTANG-TAK-TERBACA": "Beban bunga material tapi saldo utang tidak terbaca di XBRL; EV dan leverage kosong.",
+  "SHORT-TINGGI": "Short interest > 20% float: pesimisme yang bisa saja benar, sekaligus bahan bakar short squeeze.",
+  "INSIDER-JUAL": "Orang dalam menjual bersih > $10 juta di pasar terbuka dalam 90 hari, di luar rencana 10b5-1.",
+  "EARNINGS-DEKAT": "Laporan keuangan dalam ≤ 5 hari bursa; gap 10–20% dua arah biasa terjadi.",
 };
 
 const state = {
   tab: "tren", cari: "", sektor: "", indeks: "", saringFlag: "", kelompok: "ringkas",
   perHal: 25, hal: 1, urut: { kolom: null, naik: false }, gagal: false,
-  data: { tren: null, value: null, quality: null, semua: null },
-  adaFile: { tren: true, value: true, quality: true },
+  data: { tren: null, value: null, quality: null, smartmoney: null, semua: null },
+  adaFile: { tren: true, value: true, quality: true, smartmoney: true },
   kolomAda: new Set(), median: null, meta: null, dipilih: null,
 };
 
@@ -582,7 +624,16 @@ function sel(k, r, kelas) {
     const ya = String(v).toLowerCase() === "true";
     return `<td class="${kelas}">${ya ? '<span class="tt-ya" title="Lolos trend template">✓</span>' : '<span class="redup">–</span>'}</td>`;
   }
+  if (k.jenis === "ya") {
+    const ya = String(v).toLowerCase() === "true";
+    return `<td class="${kelas}">${ya ? '<span class="tt-ya" title="≥ 2 orang dalam membeli dalam 30 hari">✓</span>' : '<span class="redup">–</span>'}</td>`;
+  }
   if (kosong(v)) return `<td class="${kelas}"><span class="redup">–</span></td>`;
+  if (k.jenis === "earnings") {
+    // Lapkeu dalam lima hari bursa: jangan masuk dulu, apa pun skornya.
+    const dekat = v >= 0 && v <= 5;
+    return `<td class="${kelas}">${dekat ? `<span class="skor sk-lemah" title="Lapkeu ≤ 5 hari bursa">${angka(v)}</span>` : angka(v)}</td>`;
+  }
   if (k.jenis === "z") {
     const band = v >= 1 ? " z-kuat" : v <= -1 ? " z-lemah" : "";
     return `<td class="${kelas}"><span class="z${band}">${angka(v, 2, true)}</span></td>`;
@@ -783,7 +834,17 @@ function bukaDetail(ticker) {
     : [["ROIC", "ROIC", 1, "%"], ["ROE", "ROE", 1, "%"], ["Margin kotor", "GrossMargin", 1, "%"],
        ["Akrual (% aset)", "Akrual", 1, "%"], ["Utang bersih/EBITDA", "NetDebt_EBITDA", 2, "x"],
        ["Cakupan bunga", "Cakupan_Bunga", 1, "x"], ["Altman Z", "Z_Altman", 2, ""]];
-  const tumbuh = [["Pendapatan YoY", "Rev_YoY", 1, "%"], ["Laba YoY", "Laba_YoY", 1, "%"], ["Saham YoY", "Dilusi_YoY", 1, "%"]];
+  const tumbuh = [["Pendapatan YoY", "Rev_YoY", 1, "%"], ["Laba YoY", "Laba_YoY", 1, "%"],
+    ["Pendapatan 3 th (CAGR)", "Rev_CAGR3", 1, "%"], ["EPS 3 th (CAGR)", "EPS_CAGR3", 1, "%"],
+    ["Saham YoY", "Dilusi_YoY", 1, "%"], ["Revisi target analis 3 bln", "Target_Revisi", 1, "%"],
+    ["Jarak ke target konsensus", "Target_Upside", 1, "%"], ["Earnings surprise terakhir", "Surprise_Terakhir", 1, "%"]];
+  const smart = [["Insider net 90 hari ($ juta)", "Insider_Net90H_JutaUSD", 2, ""],
+    ["Insider net (% market cap)", "Insider_Net_PctMCap", 3, "%"],
+    ["Kepemilikan institusi", "Institusi_Pct", 1, "%"],
+    ["Δ institusi sejak snapshot lalu", "Institusi_Delta", 2, " pp"],
+    ["Short interest", "Short_PctFloat", 2, "% float"],
+    ["Rekomendasi analis (1 beli – 5 jual)", "Rekom_Rata", 2, ""]];
+  const cluster = String(r.Insider_ClusterBuy).toLowerCase() === "true";
   const tt = String(r.TrendTemplate).toLowerCase() === "true";
   const jarakMA = !kosong(r.MA200) && r.MA200 ? (r.Harga / r.MA200 - 1) * 100 : null;
   const jarakHigh = !kosong(r.High52) && r.High52 ? (r.Harga / r.High52 - 1) * 100 : null;
@@ -802,7 +863,7 @@ function bukaDetail(ticker) {
       <div><b>${kosong(r.Keyakinan) ? "–" : angka(r.Keyakinan)}</b><span>keyakinan data</span></div>
     </div>
     <h3>Posisi faktor di dalam sektor</h3>
-    ${batangZ("Value", r.Z_Value)}${batangZ("Quality", r.Z_Quality)}${batangZ("Momentum", r.Z_Momentum)}${batangZ("Low-Vol", r.Z_LowVol)}
+    ${batangZ("Value", r.Z_Value)}${batangZ("Quality", r.Z_Quality)}${batangZ("Momentum", r.Z_Momentum)}${batangZ("Low-Vol", r.Z_LowVol)}${batangZ("Growth", r.Z_Growth)}${batangZ("Smart money", r.Z_SmartMoney)}
     <h3>Valuasi</h3>
     <table class="banding"><thead><tr><th class="kiri">Metrik</th><th>${esc(r.Ticker)}</th><th>Median sektor</th></tr></thead>
       <tbody>${barisBanding(valuasi, r, med)}</tbody></table>
@@ -812,6 +873,16 @@ function bukaDetail(ticker) {
     <h3>Pertumbuhan · laporan s.d. ${esc(r.Periode_Lapkeu || "–")} (${esc(r.Basis || "–")})</h3>
     <table class="banding"><thead><tr><th class="kiri">Metrik</th><th>${esc(r.Ticker)}</th><th>Median sektor</th></tr></thead>
       <tbody>${barisBanding(tumbuh, r, med)}</tbody></table>
+    <h3>Smart money</h3>
+    <div class="sub">${cluster ? "<b>Cluster buy</b>: ≥ 2 orang dalam membeli di pasar terbuka dalam 30 hari"
+      : "Tanpa cluster buy"} · ${kosong(r.Insider_Pembeli90H) ? "–" : angka(r.Insider_Pembeli90H)} pembeli 90 hari ·
+      transaksi terakhir ${esc(r.Insider_Terakhir || "–")} ·
+      lapkeu berikutnya ${esc(r.Earnings_Berikut || "–")}${kosong(r.Hari_Ke_Earnings) ? "" : ` (${angka(r.Hari_Ke_Earnings)} hari bursa)`}</div>
+    <table class="banding"><thead><tr><th class="kiri">Sinyal</th><th>${esc(r.Ticker)}</th><th>Median sektor</th></tr></thead>
+      <tbody>${barisBanding(smart, r, med)}</tbody></table>
+    <div class="sub">Orang dalam dari Form 4 (EDGAR, lag ≤ 2 hari kerja), hanya transaksi pasar terbuka
+      di luar rencana 10b5-1. Institusi dan short interest dari yfinance — turunan 13F dan FINRA,
+      tertinggal dua minggu sampai 45 hari.</div>
     <h3>Tren</h3>
     <div class="sub">Harga ${jarakMA === null ? "–" : angka(jarakMA, 1, true) + "%"} dari MA200 ·
       ${jarakHigh === null ? "–" : angka(jarakHigh, 1, true) + "%"} dari high 52 minggu ·
@@ -850,6 +921,14 @@ function pilihTab(tab) {
   // Tab hasil saringan sudah diurut oleh screener (faktor terkuat dulu);
   // tab Semua paling enak dibaca dari emiten terbesar.
   state.urut = tab === "semua" ? { kolom: "MCap_MiliarUSD", naik: false } : { kolom: null, naik: false };
+  // Tab smart money dibuka dengan kelompok kolomnya sendiri: kolom Ringkas
+  // tidak memuat satu pun angka orang dalam, jadi tabelnya akan terlihat
+  // tidak berhubungan dengan judul tabnya. Pilihan kolom yang sudah diubah
+  // sendiri oleh pembaca tidak ditimpa.
+  if (tab === "smartmoney" && state.kelompok === "ringkas") {
+    state.kelompok = "smart";
+    document.getElementById("kelompok").value = "smart";
+  }
   document.querySelectorAll(".tabs button").forEach(b => b.classList[b.dataset.tab === tab ? "add" : "remove"]("active"));
   document.querySelectorAll(".tile").forEach(t => t.classList[t.dataset.tab === tab ? "add" : "remove"]("aktif"));
   render();
@@ -921,20 +1000,22 @@ async function ambilCSV(nama, wajib) {
 async function muat() {
   pasangKendali();
   try {
-    const [semua, tren, value, quality, meta] = await Promise.all([
+    const [semua, tren, value, quality, smartmoney, meta] = await Promise.all([
       ambilCSV("semua", true), ambilCSV("tren", false), ambilCSV("value", false), ambilCSV("quality", false),
+      ambilCSV("smartmoney", false),
       fetch(`hasil/meta.json?t=${Date.now()}`).then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
     state.kolomAda = new Set(semua.header);
     state.data.semua = semua.rows;
-    for (const [nama, hasil] of [["tren", tren], ["value", value], ["quality", quality]]) {
+    for (const [nama, hasil] of [["tren", tren], ["value", value], ["quality", quality],
+                                 ["smartmoney", smartmoney]]) {
       state.adaFile[nama] = !!hasil;
       state.data[nama] = hasil ? hasil.rows : [];
     }
     state.meta = meta;
-    document.getElementById("t-tren").textContent = state.adaFile.tren ? state.data.tren.length : "–";
-    document.getElementById("t-value").textContent = state.adaFile.value ? state.data.value.length : "–";
-    document.getElementById("t-quality").textContent = state.adaFile.quality ? state.data.quality.length : "–";
+    for (const nama of ["tren", "value", "quality", "smartmoney"]) {
+      document.getElementById("t-" + nama).textContent = state.adaFile[nama] ? state.data[nama].length : "–";
+    }
     document.getElementById("t-semua").textContent = state.data.semua.length;
     const sektor = [...new Set(state.data.semua.map(r => r.Sektor).filter(Boolean))].sort();
     const pilihSektor = document.getElementById("sektor");

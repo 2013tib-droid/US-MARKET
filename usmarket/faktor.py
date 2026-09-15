@@ -1,5 +1,9 @@
-"""Faktor kuantitatif. Fase 1 berisi dua faktor yang hanya butuh harga:
-Momentum dan Low Volatility. Definisinya ada di docs/01-metodologi.md §3.
+"""Faktor kuantitatif. Definisinya ada di docs/01-metodologi.md §3.
+
+Di modul ini: Momentum dan Low Volatility (Fase 1, hanya butuh harga) dan
+Growth/Revisi (Fase 3, dari laporan SEC + estimasi analis). Value dan
+Quality ada di valuasi.py karena butuh harga *dan* laporan keuangan;
+Smart money di smartmoney.py.
 
 Setiap faktor dihitung dalam dua langkah:
 1. Metrik mentah per saham (fungsi `mentah_*`), dari histori satu ticker.
@@ -149,6 +153,45 @@ def hitung_faktor(tabel: pd.DataFrame) -> pd.DataFrame:
 
     t["_SektorKecil"] = kecil_a | kecil_b
     t["RS_Rating"] = rs_rating(t["_RS_Mentah"]) if "_RS_Mentah" in t else np.nan
+    return t
+
+
+# Faktor Growth/Revisi (docs/01-metodologi.md §3, baris "Growth & Revisi").
+# Pertumbuhan yang sudah terjadi (dari SEC) berbobot 70%, pandangan analis ke
+# depan 30% — bukan sebaliknya: yang pertama angka audit, yang kedua proksi
+# gratis dari yfinance untuk revisi konsensus yang aslinya berbayar.
+BOBOT_GROWTH = {"Laba_YoY": 0.25, "Rev_YoY": 0.2, "EPS_CAGR3": 0.15, "Rev_CAGR3": 0.1,
+                "Target_Revisi": 0.2, "Surprise_Terakhir": 0.1}
+
+
+def _angka(t: pd.DataFrame, kolom: str) -> pd.Series:
+    if kolom not in t:
+        return pd.Series(np.nan, index=t.index)
+    return pd.to_numeric(t[kolom], errors="coerce")
+
+
+def hitung_growth(tabel: pd.DataFrame) -> pd.DataFrame:
+    """Tambahkan kolom turunan estimasi analis dan Z_Growth.
+
+    `Target_Upside` (jarak harga ke target konsensus) sengaja **tidak** masuk
+    skor: upside besar hampir selalu berarti harganya yang jatuh, bukan
+    targetnya yang naik — target analis bergerak lambat mengikuti harga. Yang
+    masuk skor adalah *arah revisi* target, yang memang informasi baru.
+    """
+    t = tabel.copy()
+    harga = _angka(t, "Harga").where(lambda s: s > 0)
+    t["Target_Upside"] = (_angka(t, "Target_Rata") / harga - 1) * 100
+    eps_fwd = _angka(t, "EPS_Fwd")
+    t["PE_Fwd"] = (harga / eps_fwd).where(eps_fwd > 0)
+
+    sektor = t["Sektor"].fillna("Tidak diketahui")
+    z = {}
+    for k in BOBOT_GROWTH:
+        z[k], _ = z_sektor(_angka(t, k), sektor)
+    # Minimal dua komponen: emiten yang hanya punya satu angka pertumbuhan
+    # (mis. baru IPO, tanpa liputan analis) tidak diberi skor yang seolah
+    # sebanding dengan emiten berdata lengkap.
+    t["Z_Growth"] = gabung_z_berbobot(z, BOBOT_GROWTH, sektor, min_komponen=2)
     return t
 
 
