@@ -35,6 +35,7 @@ import json
 import logging
 import sys
 import time
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -236,6 +237,33 @@ def dari_jadwal_earnings(jadwal: pd.DataFrame, sekarang: pd.Timestamp | None = N
 
 # --- perakitan ------------------------------------------------------------
 
+def peta_cik_ticker(tickers, peta: Mapping[str, int],
+                    lama: pd.DataFrame | None) -> dict[int, list[str]]:
+    """CIK → daftar ticker universe yang memakainya.
+
+    Dipakai dua kali: memilih emiten yang Form 4-nya diunduh, dan
+    mengelompokkan transaksi yang sudah turun. Keduanya harus memakai peta
+    yang sama, kalau tidak ada emiten yang diunduh tapi hasilnya tidak
+    terpasang ke mana-mana.
+
+    `data/smartmoney.csv` run sebelumnya jadi cadangan: pada `--lewati-form4`
+    tidak ada koneksi ke EDGAR untuk mengambil peta yang hidup, dan sesekali
+    ada ticker yang tidak terdaftar di berkas peta SEC padahal CIK-nya sudah
+    diketahui dari run lalu.
+    """
+    cik_ticker: dict[int, list[str]] = {}
+    lama_cik = (pd.to_numeric(lama["CIK"], errors="coerce")
+                if lama is not None and "CIK" in lama.columns else None)
+    for t in tickers:
+        cik = peta.get(t)
+        if cik is None and lama_cik is not None and t in lama_cik.index:
+            nilai = lama_cik.loc[t]
+            cik = int(nilai) if pd.notna(nilai) else None
+        if cik is not None:
+            cik_ticker.setdefault(int(cik), []).append(t)
+    return cik_ticker
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--ticker", nargs="+", help="Hanya ticker ini (untuk uji)")
@@ -258,13 +286,12 @@ def main(argv=None) -> int:
     transaksi = muat_insider()
     meta_form4: dict = {"dilewati": True}
     peta: dict[str, int] = {}
+    lama = pd.read_csv(KELUARAN, index_col="Ticker") if KELUARAN.exists() else None
     if not a.lewati_form4:
         klien = sec.KlienSEC()
         peta = klien.peta_cik()
-        cik_ticker: dict[int, list[str]] = {}
-        for t in uni.index:
-            if (cik := peta.get(t)) is not None:
-                cik_ticker.setdefault(cik, []).append(t)
+    cik_ticker = peta_cik_ticker(uni.index, peta, lama)
+    if not a.lewati_form4:
         sudah = set(transaksi["Akses"].astype(str)) if len(transaksi) else set()
         baris, meta_form4 = unduh_form4(klien, cik_ticker, sudah,
                                         hari_ini - timedelta(days=smartmoney.JENDELA_HARI),
@@ -277,7 +304,7 @@ def main(argv=None) -> int:
             subset=["Akses", "Tanggal", "Kode", "Lembar", "Harga", "Pemilik_CIK"])
         transaksi = transaksi.sort_values(["Ticker", "Tanggal", "Akses"], kind="stable")
 
-    ringkas = smartmoney.ringkas_insider(transaksi, hari_ini)
+    ringkas = smartmoney.ringkas_insider(transaksi, cik_ticker, hari_ini)
     tabel = pd.DataFrame(index=uni.index).join(ringkas, how="left")
     tabel.index.name = "Ticker"
     if not a.lewati_form4:
@@ -289,7 +316,6 @@ def main(argv=None) -> int:
                            ("Insider_Rencana90H", 0), ("Insider_ClusterBuy", False)):
             tabel[kolom] = tabel[kolom].fillna(nol)
 
-    lama = pd.read_csv(KELUARAN, index_col="Ticker") if KELUARAN.exists() else None
     if not a.lewati_yahoo:
         print(f"Mengambil institusi, short interest, dan target analis {len(uni)} emiten dari Yahoo…",
               file=sys.stderr)

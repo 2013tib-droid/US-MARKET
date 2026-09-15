@@ -208,8 +208,8 @@ yang sekecil itu dari 44, jadi belum jadi masalah, tapi kalau nanti cluster
 dipakai sebagai sinyal di Fase 4, saring dulu yang semua pembelinya direktur
 dan semuanya di satu tanggal.
 
-**Temuan verifikasi yang belum ditambal — transaksi hilang karena ticker
-teks bebas.** `Ticker` di `data/insider.csv` diambil dari medan simbol di
+**Temuan verifikasi — transaksi hilang karena ticker teks bebas (sudah
+ditambal).** `Ticker` di `data/insider.csv` diambil dari medan simbol di
 Form 4, yang diisi filer semaunya: `NONE`, `(CALX)`, `NYSE: KRC`, `N O G`,
 `GEF, GEF-B`, `MOGA/MOGB`. Fallback ke CIK di `perbarui_smartmoney.py` hanya
 jalan kalau medan itu **kosong**, bukan kalau isinya salah bentuk. Karena
@@ -222,13 +222,32 @@ antaranya beli/jual pasar terbuka senilai $50,9 juta di 11 emiten. Jadi
 `Insider_Net90H_JutaUSD` untuk emiten seperti BIO, MOG-A, GEF, KRC, dan WLY
 saat ini kurang lengkap — terlalu kecil, tidak pernah terlalu besar.
 
-Perbaikannya kecil: kelompokkan per `CIK`, bukan per `Ticker`, lalu petakan
-CIK → ticker universe sekali di akhir. Perlu diputuskan sekalian bagaimana
-emiten multi-kelas ditangani, karena lima CIK memegang dua ticker universe
-(GOOG/GOOGL, FOX/FOXA, NWS/NWSA, UA/UAA, CENT/CENTA). Satu hal lagi yang
-ditemukan sambil lalu dan perlu dicek terpisah: ticker universe `DMC`
-memegang CIK 1047340, sedangkan Form 4 di bawah CIK yang sama menyebut
-simbolnya `FDP`.
+**Perbaikannya**: `ringkas_insider` sekarang mengelompokkan per `CIK` dan
+menerima peta CIK → ticker universe; kolom `Ticker` di transaksi tidak
+dipakai sama sekali. CIK selalu terisi (0 kosong dari 32.541 baris, sedangkan
+`Ticker` ada 3 yang kosong) karena berasal dari permintaan EDGAR-nya sendiri,
+bukan dari isi dokumen. Peta yang sama dipakai untuk memilih emiten yang
+diunduh dan untuk mengelompokkan hasilnya, jadi keduanya tidak bisa lagi
+berbeda; `data/smartmoney.csv` run sebelumnya jadi cadangan saat
+`--lewati-form4` berjalan tanpa jaringan.
+
+Emiten multi-kelas ikut ditentukan sekalian: Form 4 dilaporkan di tingkat
+emiten, bukan kelas saham, jadi satu CIK yang memegang dua ticker universe
+(GOOG/GOOGL, FOX/FOXA, NWS/NWSA, UA/UAA, CENT/CENTA) mengisi keduanya dengan
+angka yang sama.
+
+Dihitung ulang terhadap data 15 Sep 2026, kode baru memperbaiki **9 emiten**,
+tujuh di antaranya tadinya tampil persis nol: VSXY −96,96 → −121,40 juta,
+GEF 0 → −8,47, NWSA 0 → −3,19, KRC 0 → −0,90, CENTA 0 → −0,54, SIRI 0 →
+−0,50, NOG 0 → +0,50, BRK-B 0 → +0,25, UAA 0 → +0,10. Jumlah cluster tetap
+44, tidak ada yang hilang maupun muncul. Emiten yatim lain (MOG-A, TRN,
+CALX, ECHO) memang tidak berubah: baris mereka di luar jendela 90 hari atau
+bertanda 10b5-1, jadi nol dengan cara mana pun.
+
+Satu hal yang ditemukan sambil lalu dan **belum** dikejar: ticker universe
+`DMC` memegang CIK 1047340, sedangkan Form 4 di bawah CIK yang sama menyebut
+simbolnya `FDP`. Salah satu dari keduanya keliru di peta ticker → CIK, dan
+itu pemeriksaan tersendiri di `universe.py`, bukan di jalur ini.
 
 `Target_Revisi` masih kosong dan itu memang belum waktunya: ia baru terisi
 setelah `data/target_riwayat.csv` mencapai tiga bulan (± 13 run mingguan).

@@ -87,9 +87,22 @@ def test_form4_rusak_tidak_melempar():
 
 
 def transaksi(baris) -> pd.DataFrame:
-    kolom = ["Ticker", "Tanggal", "Kode", "Nilai", "Pemilik", "Pemilik_CIK", "Rencana10b5"]
-    return pd.DataFrame(baris, columns=kolom)
+    """Baris uji dengan CIK emiten diturunkan dari tickernya.
 
+    Kolom Ticker sengaja tetap ada dan tetap diisi: `ringkas_insider` harus
+    mengabaikannya, dan beberapa uji mengisinya dengan sampah seperti yang
+    dilakukan filer sungguhan.
+    """
+    kolom = ["Ticker", "Tanggal", "Kode", "Nilai", "Pemilik", "Pemilik_CIK", "Rencana10b5"]
+    df = pd.DataFrame(baris, columns=kolom)
+    df.insert(1, "CIK", [CIK.get(t, 0) for t in df["Ticker"]])
+    return df
+
+
+# Ticker uji → CIK emitennya, dan kebalikannya untuk dioper ke ringkas_insider.
+CIK = {"AAPL": 320193, "X": 111, "Y": 222, "(AAPL)": 320193, "NONE": 320193,
+       "GOOG": 1652044, "GOOGL": 1652044}
+PETA = {320193: ["AAPL"], 111: ["X"], 222: ["Y"], 1652044: ["GOOG", "GOOGL"]}
 
 HARI_INI = date(2026, 9, 15)
 
@@ -105,7 +118,7 @@ def test_ringkas_net_beli_dikurangi_jual():
         # Bukan pasar terbuka.
         ["AAPL", "2026-09-03", "M", 8_000_000, "E", 5, False],
     ])
-    r = smartmoney.ringkas_insider(t, HARI_INI).loc["AAPL"]
+    r = smartmoney.ringkas_insider(t, PETA, HARI_INI).loc["AAPL"]
     assert r["Insider_Beli90H_JutaUSD"] == pytest.approx(1.0)
     assert r["Insider_Jual90H_JutaUSD"] == pytest.approx(3.0)
     assert r["Insider_Net90H_JutaUSD"] == pytest.approx(-2.0)
@@ -117,20 +130,20 @@ def test_ringkas_net_beli_dikurangi_jual():
 def test_cluster_buy_butuh_dua_orang_dalam_jendela_30_hari():
     dua_orang = transaksi([["X", "2026-09-01", "P", 1e6, "A", 1, False],
                            ["X", "2026-09-20", "P", 1e6, "B", 2, False]])
-    r = smartmoney.ringkas_insider(dua_orang, date(2026, 9, 25)).loc["X"]
+    r = smartmoney.ringkas_insider(dua_orang, PETA, date(2026, 9, 25)).loc["X"]
     assert bool(r["Insider_ClusterBuy"]) and r["Insider_ClusterTgl"] == "2026-09-20"
 
     satu_orang = transaksi([["X", "2026-09-01", "P", 1e6, "A", 1, False],
                             ["X", "2026-09-20", "P", 1e6, "A", 1, False]])
-    assert not smartmoney.ringkas_insider(satu_orang, date(2026, 9, 25)).loc["X"]["Insider_ClusterBuy"]
+    assert not smartmoney.ringkas_insider(satu_orang, PETA, date(2026, 9, 25)).loc["X"]["Insider_ClusterBuy"]
 
     berjauhan = transaksi([["X", "2026-07-01", "P", 1e6, "A", 1, False],
                            ["X", "2026-09-01", "P", 1e6, "B", 2, False]])
-    assert not smartmoney.ringkas_insider(berjauhan, date(2026, 9, 25)).loc["X"]["Insider_ClusterBuy"]
+    assert not smartmoney.ringkas_insider(berjauhan, PETA, date(2026, 9, 25)).loc["X"]["Insider_ClusterBuy"]
 
 
 def test_ringkas_tanpa_transaksi_menghasilkan_tabel_kosong_berkolom():
-    r = smartmoney.ringkas_insider(transaksi([]), HARI_INI)
+    r = smartmoney.ringkas_insider(transaksi([]), PETA, HARI_INI)
     assert len(r) == 0 and "Insider_Net90H_JutaUSD" in r.columns
 
 
@@ -249,3 +262,57 @@ def test_target_upside_dan_pe_forward():
     assert h.loc["B", "Target_Upside"] == pytest.approx(-10.0)
     assert h.loc["A", "PE_Fwd"] == pytest.approx(20.0)
     assert np.isnan(h.loc["B", "PE_Fwd"])            # EPS forward negatif: tanpa kelipatan
+
+
+def test_ticker_sampah_di_form4_tidak_menghilangkan_transaksi():
+    """Bug 15 Sep 2026: transaksi dikelompokkan per kolom Ticker, yang isinya
+    medan simbol Form 4 dan diketik filer semaunya. Baris ber-ticker "NONE"
+    atau "(AAPL)" lenyap tanpa error saat hasilnya di-join ke universe; pada
+    data run pertama ada 428 baris begitu, 45 di antaranya beli/jual pasar
+    terbuka senilai $50,9 juta."""
+    t = transaksi([
+        ["AAPL", "2026-09-01", "P", 1_000_000, "A", 1, False],
+        ["(AAPL)", "2026-09-02", "P", 2_000_000, "B", 2, False],
+        ["NONE", "2026-09-03", "P", 3_000_000, "C", 3, False],
+    ])
+    r = smartmoney.ringkas_insider(t, PETA, HARI_INI).loc["AAPL"]
+    assert r["Insider_Beli90H_JutaUSD"] == pytest.approx(6.0)
+    assert r["Insider_Transaksi90H"] == 3
+    assert r["Insider_Pembeli90H"] == 3
+
+
+def test_cluster_terbentuk_lintas_ticker_sampah():
+    """Konsekuensi paling mahal dari bug itu: dua pembeli yang sebenarnya satu
+    emiten terpecah jadi dua kelompok, dan cluster buy-nya tidak pernah
+    terdeteksi."""
+    t = transaksi([
+        ["AAPL", "2026-09-01", "P", 1_000_000, "A", 1, False],
+        ["NYSE: AAPL", "2026-09-10", "P", 1_000_000, "B", 2, False],
+    ])
+    t["CIK"] = CIK["AAPL"]
+    r = smartmoney.ringkas_insider(t, PETA, HARI_INI).loc["AAPL"]
+    assert bool(r["Insider_ClusterBuy"]) and r["Insider_ClusterTgl"] == "2026-09-10"
+
+
+def test_emiten_multi_kelas_dapat_angka_yang_sama():
+    """Form 4 dilaporkan di tingkat emiten, bukan kelas saham: satu CIK yang
+    memegang dua ticker universe (GOOG/GOOGL) harus mengisi keduanya."""
+    t = transaksi([["GOOG", "2026-09-01", "P", 5_000_000, "A", 1, False]])
+    r = smartmoney.ringkas_insider(t, PETA, HARI_INI)
+    assert set(r.index) == {"GOOG", "GOOGL"}
+    assert r.loc["GOOG"]["Insider_Net90H_JutaUSD"] == pytest.approx(5.0)
+    assert r.loc["GOOGL"]["Insider_Net90H_JutaUSD"] == pytest.approx(5.0)
+
+
+def test_emiten_di_luar_universe_dibuang():
+    """CIK yang tidak ada di peta bukan kesalahan: Form 4 emiten di luar
+    universe memang ikut terunduh sesekali, dan tidak dipakai."""
+    t = transaksi([["AAPL", "2026-09-01", "P", 1_000_000, "A", 1, False]])
+    t["CIK"] = [999999]
+    assert len(smartmoney.ringkas_insider(t, PETA, HARI_INI)) == 0
+
+
+def test_transaksi_tanpa_cik_dilewati_bukan_melempar():
+    t = transaksi([["AAPL", "2026-09-01", "P", 1_000_000, "A", 1, False]])
+    t["CIK"] = [None]
+    assert len(smartmoney.ringkas_insider(t, PETA, HARI_INI)) == 0

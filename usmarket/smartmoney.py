@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import re
 import xml.etree.ElementTree as ET
+from collections.abc import Mapping
 from datetime import date, timedelta
 
 import numpy as np
@@ -194,13 +195,29 @@ def _cluster(beli: pd.DataFrame) -> tuple[bool, str | None]:
     return False, None
 
 
-def ringkas_insider(transaksi: pd.DataFrame, hari_ini: date | None = None,
+def ringkas_insider(transaksi: pd.DataFrame, cik_ticker: Mapping[int, list[str]],
+                    hari_ini: date | None = None,
                     jendela: int = JENDELA_HARI) -> pd.DataFrame:
     """Satu baris per ticker dari tabel transaksi Form 4 mentah.
 
     Yang dihitung hanya beli/jual pasar terbuka di luar rencana 10b5-1;
     sisanya tetap dihitung jumlahnya supaya "tidak ada transaksi" bisa
     dibedakan dari "semuanya terjadwal".
+
+    Pengelompokannya per **CIK**, lalu `cik_ticker` memetakannya ke ticker
+    universe. Kolom `Ticker` di transaksi tidak dipakai sama sekali: isinya
+    medan simbol Form 4 yang diketik filer semaunya — "NONE", "(CALX)",
+    "NYSE: KRC", "GEF, GEF-B" semuanya nyata ada. Dulu baris seperti itu
+    lenyap tanpa error saat hasilnya di-join ke universe; pada data 15 Sep
+    2026 ada 428 baris begitu, 45 di antaranya beli/jual pasar terbuka
+    senilai $50,9 juta. CIK selalu terisi karena berasal dari permintaan
+    EDGAR-nya sendiri, bukan dari isi dokumen.
+
+    Satu CIK bisa memegang lebih dari satu ticker universe (GOOG/GOOGL,
+    FOX/FOXA, NWS/NWSA, UA/UAA, CENT/CENTA). Form 4 dilaporkan di tingkat
+    emiten, bukan kelas saham, jadi angkanya disalin ke setiap kelas —
+    orang dalam yang membeli di Alphabet adalah sinyal yang sama untuk GOOG
+    dan GOOGL.
     """
     kosong = pd.DataFrame(columns=["Insider_Beli90H_JutaUSD", "Insider_Jual90H_JutaUSD",
                                    "Insider_Net90H_JutaUSD", "Insider_Pembeli90H",
@@ -216,17 +233,22 @@ def ringkas_insider(transaksi: pd.DataFrame, hari_ini: date | None = None,
     t["Nilai"] = pd.to_numeric(t["Nilai"], errors="coerce")
     t["Rencana10b5"] = t["Rencana10b5"].map(lambda v: str(v).strip().lower() in ("true", "1", "yes"))
     batas = pd.Timestamp(hari_ini or date.today()) - pd.Timedelta(days=jendela)
-    t = t[t["Tanggal"].notna() & (t["Tanggal"] >= batas) & t["Kode"].isin([KODE_BELI, KODE_JUAL])]
+    t["CIK"] = pd.to_numeric(t["CIK"], errors="coerce")
+    t = t[t["Tanggal"].notna() & (t["Tanggal"] >= batas) & t["CIK"].notna()
+          & t["Kode"].isin([KODE_BELI, KODE_JUAL])]
     if t.empty:
         return kosong
 
     baris = {}
-    for ticker, g in t.groupby("Ticker"):
+    for cik, g in t.groupby(t["CIK"].astype("int64")):
+        tickers = cik_ticker.get(int(cik))
+        if not tickers:
+            continue  # emiten di luar universe: Form 4-nya memang tidak dipakai
         bebas = g[~g["Rencana10b5"] & g["Nilai"].notna()]
         beli = bebas[bebas["Kode"] == KODE_BELI]
         jual = bebas[bebas["Kode"] == KODE_JUAL]
         ada_cluster, tgl_cluster = _cluster(beli)
-        baris[ticker] = {
+        isi = {
             "Insider_Beli90H_JutaUSD": beli["Nilai"].sum() / 1e6,
             "Insider_Jual90H_JutaUSD": jual["Nilai"].sum() / 1e6,
             "Insider_Net90H_JutaUSD": (beli["Nilai"].sum() - jual["Nilai"].sum()) / 1e6,
@@ -238,6 +260,10 @@ def ringkas_insider(transaksi: pd.DataFrame, hari_ini: date | None = None,
             "Insider_ClusterTgl": tgl_cluster,
             "Insider_Terakhir": g["Tanggal"].max().date().isoformat(),
         }
+        for ticker in tickers:
+            baris[ticker] = isi
+    if not baris:
+        return kosong
     hasil = pd.DataFrame.from_dict(baris, orient="index")
     hasil.index.name = "Ticker"
     return hasil[kosong.columns]

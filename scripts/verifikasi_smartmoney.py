@@ -131,7 +131,12 @@ def main(argv=None) -> int:
         print(f"{' ' * len(t)}  EDGAR Form 4: {URL_EDGAR.format(t=t)}")
         print(f"{' ' * len(t)}  Short interest (FINRA via Nasdaq): {URL_SHORT.format(t=t.lower())}")
         if len(insider):
-            detail = insider[insider["Ticker"] == t]
+            # Disaring per CIK, bukan per Ticker: kolom Ticker di insider.csv
+            # berisi medan simbol Form 4 yang diketik filer semaunya, jadi
+            # menyaring dengannya membuang sebagian transaksi emiten ini.
+            cik = pd.to_numeric(sm.loc[t, "CIK"], errors="coerce") if "CIK" in sm.columns else None
+            detail = insider[pd.to_numeric(insider["CIK"], errors="coerce") == cik] \
+                if pd.notna(cik) else insider[insider["Ticker"] == t]
             detail = detail[detail["Kode"].isin([smartmoney.KODE_BELI, smartmoney.KODE_JUAL])]
             if len(detail):
                 kolom = ["Tanggal", "Kode", "Lembar", "Harga", "Nilai", "Pemilik", "Jabatan",
