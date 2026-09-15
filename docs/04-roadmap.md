@@ -119,9 +119,11 @@ dalam jendela TTM (HON); utang dari tag komponen bisa tumpang tindih
 
 ## Fase 3 — Smart money & Growth/Revisi (± 2 minggu)
 
-**Dibangun**: `smartmoney.py` (yfinance dulu; Form 4 langsung dari EDGAR
-bila cluster buy tidak bisa dideteksi dari yfinance), faktor **Growth/Revisi**,
-`scripts/perbarui_smartmoney.py`.
+**Dibangun**: `smartmoney.py` (Form 4 langsung dari EDGAR — lihat temuan 1 di
+bawah), faktor **Growth/Revisi** di `faktor.py`, `scripts/perbarui_smartmoney.py`,
+`scripts/verifikasi_smartmoney.py`, kolom `Z_SmartMoney`, `Z_Growth`,
+`Hari_Ke_Earnings`, flag `SHORT-TINGGI`, `INSIDER-JUAL`, `EARNINGS-DEKAT`,
+tab **Smart money** di dashboard, dan `hasil/smartmoney.csv` tiap malam.
 
 **Selesai bila**:
 - Insider net 90 hari cocok dengan tabel di OpenInsider untuk 10 emiten
@@ -129,6 +131,58 @@ bila cluster buy tidak bisa dideteksi dari yfinance), faktor **Growth/Revisi**,
 - Cluster buy terdeteksi pada minimal satu kasus yang diketahui (cari
   contoh terkini saat fase ini dimulai).
 - Short % float cocok dengan angka FINRA terakhir ± 1 poin.
+
+**Status (15 Sep 2026)**: kode, uji, dokumen, dan workflow selesai; **ketiga
+syarat di atas belum bisa diperiksa** karena semuanya menuntut data sungguhan,
+dan pembaruannya baru jalan pada run mingguan berikutnya (Minggu 06:17 WIB)
+atau saat `Fundamental & Smart Money Mingguan` dijalankan manual. Yang sudah
+diperiksa tanpa jaringan:
+
+| Pemeriksaan | Hasil |
+|---|---|
+| Parser Form 4: kode P/S, pelapor, nilai, penanda 10b5-1 (kotak centang & catatan kaki), dokumen rusak | Unit test di `tests/test_smartmoney.py` |
+| Cluster buy: dua pelapor berbeda dalam 30 hari — dan **bukan** satu pelapor dua kali atau dua pelapor berjarak 60 hari | Unit test |
+| Jalur unduh inkremental: nomor akses yang sudah tersimpan tidak diunduh lagi | `tests/test_sec_form4.py` dengan klien EDGAR tiruan |
+| Perakitan `hasil/semua.csv` dari tiga sumber, flag baru, dan dashboard | `tests/test_tabel.py` + `node scripts/uji_dashboard.js` terhadap pipeline penuh dengan harga & smart money buatan (1.521 baris) |
+
+Setelah run sungguhan yang pertama, jalankan
+`python scripts/verifikasi_smartmoney.py --jumlah 10` — ia mencetak angka kita
+bersebelahan dengan versi Yahoo, ditambah tautan OpenInsider, Form 4 asli di
+EDGAR, dan short interest FINRA untuk tiga syarat di atas — lalu isi tabel
+hasilnya di sini.
+
+**Temuan yang mengubah rancangan**:
+
+1. *Form 4 diambil langsung dari EDGAR, bukan dari yfinance.* Rencana awal
+   "yfinance dulu" ditinggalkan sebelum dicoba, karena ringkasan Yahoo tidak
+   memuat tiga hal yang justru menentukan artinya: kode transaksi (`P` beli
+   pasar terbuka vs `M` eksekusi opsi vs `A` hibah), CIK tiap pelapor (tanpa
+   itu cluster buy tidak bisa dibedakan dari satu orang yang membeli dua
+   kali), dan penanda rencana 10b5-1. Tanpa ketiganya, "insider buying" akan
+   didominasi pemberian kompensasi — yang justru tidak prediktif.
+2. *Biayanya dibayar sekali.* Jendela 90 hari untuk 1.500 emiten adalah
+   puluhan ribu dokumen (± 40 menit pada 8 permintaan/detik). Karena itu
+   transaksi pasar terbuka disimpan 180 hari di `data/insider.csv` dan
+   di-commit; run mingguan berikutnya hanya mengunduh nomor akses baru
+   (± 5 menit). Berkas itu sekaligus jejak audit: setiap angka bisa dilacak
+   ke nomor akses EDGAR-nya.
+3. *Revisi target 3 bulan harus dikumpulkan sendiri.* yfinance hanya memberi
+   target konsensus hari ini, bukan histori revisinya. `data/target_riwayat.csv`
+   menyimpan satu snapshot per pekan, jadi kolom `Target_Revisi` **kosong
+   sampai riwayatnya mencapai tiga bulan** — dan sengaja tidak diisi dengan
+   revisi seminggu, yang artinya lain.
+4. *`Target_Upside` tidak masuk skor.* Jarak harga ke target konsensus naik
+   ketika harganya jatuh; target analis bergerak lambat mengikuti harga.
+   Yang masuk `Z_Growth` adalah arah revisinya. Upside tetap ditampilkan.
+5. *Sebaran `Z_SmartMoney` lebih sempit dari faktor lain* (simpangan ± 0,7
+   pada uji pipeline, bukan 1,0), karena sebagian besar emiten memang tidak
+   punya transaksi orang dalam dan komponennya bernilai netral 0. Ini
+   dibiarkan — memaksa simpangannya jadi 1 akan membesarkan perbedaan antar
+   emiten yang sama-sama tidak memberi sinyal. Konsekuensinya: pada bobot
+   yang sama, faktor ini menyumbang lebih sedikit ke skor komposit daripada
+   angka bobotnya. Fase 4 harus memutuskan itu secara sadar.
+6. *`PE_Fwd` ditambahkan sebagai kolom, tidak masuk `Z_Value`.* Alasannya di
+   [03 §4](03-rancang-bangun.md#4-kolom-hasilsemuacsv).
 
 ## Fase 4 — Rezim & skor komposit (± 2 minggu)
 
@@ -168,9 +222,10 @@ harga $0,01), `uji_winrate.py` dengan pembanding SPY / QUAL / MTUM / VLUE,
 dilirik" seperti di README IDX).
 
 **Dimajukan sebagian (15 Sep 2026)**: dashboard, panel detail, GitHub Pages,
-dan uji dashboard sudah jalan bersama Fase 2 atas permintaan pemilik. Yang
-tersisa untuk fase ini: banner rezim, tab Akumulasi/Pantau, `winrate.html`,
-dan catatan operasional.
+dan uji dashboard sudah jalan bersama Fase 2 atas permintaan pemilik; tab
+Smart money, kelompok kolomnya, dan pewarnaan `Hari ke lapkeu` menyusul
+bersama Fase 3. Yang tersisa untuk fase ini: banner rezim, tab
+Akumulasi/Pantau, `winrate.html`, dan catatan operasional.
 
 **Selesai bila**:
 - Dashboard bisa dibuka dari HP, filter jalan, memuat < 3 detik.

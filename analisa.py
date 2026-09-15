@@ -43,6 +43,9 @@ ARTI_FLAG = {
     "GOODWILL": "Goodwill > ekuitas (atau ekuitas negatif): neraca hasil akuisisi, rawan impairment.",
     "SAHAM-JANGGAL": "Jumlah saham tidak konsisten dengan harga (laba > market cap atau nilai buku > 20× market cap); valuasi dikosongkan.",
     "UTANG-TAK-TERBACA": "Beban bunga material tapi saldo utang tidak ada di XBRL non-dimensional; EV dan leverage tidak dihitung.",
+    "SHORT-TINGGI": "Short interest > 20% float: dua arah — pesimisme yang bisa saja benar, sekaligus bahan bakar short squeeze.",
+    "INSIDER-JUAL": "Orang dalam menjual bersih > $10 juta di pasar terbuka dalam 90 hari, di luar rencana 10b5-1.",
+    "EARNINGS-DEKAT": "Laporan keuangan dalam ≤ 5 hari bursa. Gap 10–20% dua arah biasa terjadi di AS.",
 }
 
 ARTI_F = {
@@ -59,6 +62,13 @@ def _fmt(v, desimal=1, akhiran=""):
     if isinstance(v, (int, float)):
         return f"{v:,.{desimal}f}{akhiran}".replace(",", "_").replace(".", ",").replace("_", ".")
     return str(v)
+
+
+def _bulat(v) -> int:
+    """Nilai kosong (NaN) dibaca sebagai nol. Dipakai hanya untuk jumlah
+    kejadian — bukan untuk angka yang "tidak diketahui" berbeda dari nol."""
+    v = pd.to_numeric(v, errors="coerce")
+    return 0 if pd.isna(v) else int(v)
 
 
 def _usd(v):
@@ -86,12 +96,14 @@ def laporan(ticker: str, semua: pd.DataFrame, fund: pd.DataFrame) -> str:
     flag = [x for x in str(r.get("Flag") or "").split(";") if x and x != "nan"]
     keu = sektor == valuasi.KEUANGAN
 
+    # Kolom yang belum ada di CSV (mis. hasil run fase sebelumnya) tampil
+    # sebagai "–", bukan menghentikan laporan.
     def median(k):
-        return rekan[k].median()
+        return rekan[k].median() if k in rekan else float("nan")
 
     def persentil(k):
         v = r.get(k)
-        if pd.isna(v):
+        if k not in rekan or pd.isna(v):
             return "–"
         return f"{(rekan[k].dropna() <= v).mean() * 100:.0f}"
 
@@ -122,7 +134,9 @@ def laporan(ticker: str, semua: pd.DataFrame, fund: pd.DataFrame) -> str:
     faktor = [("Value", "Z_Value", "murah terhadap laba, EBITDA, arus kas, dan nilai buku"),
               ("Quality", "Z_Quality", "ROIC, margin, stabilitas, leverage, kualitas laba"),
               ("Momentum", "Z_Momentum", "return 12-1 dan 6-1 bulan dibagi volatilitas"),
-              ("Low-Vol", "Z_LowVol", "volatilitas, beta, drawdown rendah")]
+              ("Low-Vol", "Z_LowVol", "volatilitas, beta, drawdown rendah"),
+              ("Growth", "Z_Growth", "pertumbuhan EPS & pendapatan, revisi target analis, earnings surprise"),
+              ("Smart money", "Z_SmartMoney", "beli bersih orang dalam dan arah kepemilikan institusi")]
     L.append(_tabel([[n, _fmt(r.get(k), 2), persentil(k), ket] for n, k, ket in faktor],
                     ["Faktor", "Z", "Persentil sektor", "Isi"]))
     L.append("")
@@ -172,12 +186,45 @@ def laporan(ticker: str, semua: pd.DataFrame, fund: pd.DataFrame) -> str:
         L.append("")
 
     # --- pertumbuhan ---
-    L += ["## Pertumbuhan & dilusi", ""]
-    L.append(_tabel([["Pendapatan YoY", _fmt(r.get("Rev_YoY"), 1, "%"), _fmt(median("Rev_YoY"), 1, "%")],
-                     ["Laba bersih YoY", _fmt(r.get("Laba_YoY"), 1, "%"), _fmt(median("Laba_YoY"), 1, "%")],
-                     ["Jumlah saham YoY", _fmt(r.get("Dilusi_YoY"), 1, "%"), _fmt(median("Dilusi_YoY"), 1, "%")]],
-                    ["Metrik", ticker, f"Median {sektor}"]))
-    L.append("")
+    L += ["## Pertumbuhan, dilusi, dan pandangan analis", ""]
+    kol_g = [("Pendapatan YoY", "Rev_YoY", "%"), ("Laba bersih YoY", "Laba_YoY", "%"),
+             ("Pendapatan 3 th (CAGR)", "Rev_CAGR3", "%"), ("EPS 3 th (CAGR)", "EPS_CAGR3", "%"),
+             ("Jumlah saham YoY", "Dilusi_YoY", "%"),
+             ("Revisi target analis 3 bln", "Target_Revisi", "%"),
+             ("Jarak ke target konsensus", "Target_Upside", "%"),
+             ("Earnings surprise terakhir", "Surprise_Terakhir", "%"),
+             ("P/E forward", "PE_Fwd", "x")]
+    L.append(_tabel([[n, _fmt(r.get(k), 2 if s == "x" else 1, s), _fmt(median(k), 2 if s == "x" else 1, s)]
+                     for n, k, s in kol_g], ["Metrik", ticker, f"Median {sektor}"]))
+    L += ["", "Pertumbuhan tiga tahun dihitung dari tahun fiskal dan kosong bila basisnya rugi. "
+          "Target dan surprise berasal dari yfinance — **proksi** untuk revisi konsensus yang "
+          "aslinya berbayar. Yang masuk Z_Growth adalah arah revisinya, bukan jarak ke target: "
+          "upside besar biasanya berarti harganya yang jatuh, bukan targetnya yang naik.", ""]
+
+    # --- smart money ---
+    L += ["## Smart money", "",
+          f"Orang dalam (Form 4, {_bulat(r.get('Insider_Pembeli90H'))} pembeli dan "
+          f"{_bulat(r.get('Insider_Penjual90H'))} penjual dalam 90 hari), kepemilikan institusi, "
+          "dan short interest. Hanya transaksi pasar terbuka di luar rencana 10b5-1 yang dihitung.", ""]
+    cluster = "ya" if str(r.get("Insider_ClusterBuy")) == "True" else "tidak"
+    kol_sm = [["Beli bersih orang dalam 90 hari", f"${_fmt(r.get('Insider_Net90H_JutaUSD'), 2)} juta",
+               f"{_fmt(r.get('Insider_Net_PctMCap'), 3, '%')} market cap"],
+              ["Beli / jual kotor", f"${_fmt(r.get('Insider_Beli90H_JutaUSD'), 2)} juta",
+               f"${_fmt(r.get('Insider_Jual90H_JutaUSD'), 2)} juta"],
+              ["Cluster buy (≥ 2 orang dalam, 30 hari)", cluster,
+               f"transaksi terakhir {_fmt(r.get('Insider_Terakhir'))}"],
+              ["Kepemilikan institusi", _fmt(r.get("Institusi_Pct"), 1, "%"),
+               f"{_fmt(r.get('Institusi_Delta'), 2)} pp sejak snapshot lalu"],
+              ["Short interest", _fmt(r.get("Short_PctFloat"), 2, "% float"),
+               f"{_fmt(r.get('Short_Ratio'), 1)} hari volume"],
+              ["Rekomendasi analis (1 beli – 5 jual)", _fmt(r.get("Rekom_Rata"), 2),
+               f"{_fmt(r.get('Jumlah_Analis'), 0)} analis"],
+              ["Lapkeu berikutnya", _fmt(r.get("Earnings_Berikut")),
+               f"{_fmt(r.get('Hari_Ke_Earnings'), 0)} hari bursa lagi"]]
+    L.append(_tabel(kol_sm, ["Sinyal", "Nilai", "Konteks"]))
+    L += ["", "Kepemilikan institusi dan short interest dari yfinance (turunan 13F dan FINRA, "
+          "tertinggal dua minggu sampai 45 hari). Perubahan institusi diukur terhadap snapshot "
+          "mingguan repo ini, bukan antar-kuartal 13F.", ""]
 
     # --- angka mentah ---
     if len(fr):

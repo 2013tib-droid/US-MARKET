@@ -92,6 +92,18 @@ jobs:
             --min-keyakinan 70 --min-fscore 6 --min-z-quality 1 --urut Z_Quality \
             --output hasil/quality.csv --diam
 
+      # Saringan smart money (Fase 3): orang dalam membeli lebih banyak dari
+      # yang mereka jual di pasar terbuka 90 hari terakhir, di luar rencana
+      # 10b5-1. Ambang $0,5 juta membuang pembelian simbolis satu direktur
+      # yang nilainya seharga satu kali rapat. Diurut dari Z_SmartMoney, yang
+      # sudah memperhitungkan ukuran emiten dan arah kepemilikan institusi.
+      - name: Saringan smart money
+        if: steps.bursa.outputs.jalan == 'true'
+        run: >
+          python screener.py --dari-csv hasil/semua.csv
+          --likuid --tanpa-flag-berat --min-insider-net 0.5
+          --urut Z_SmartMoney --output hasil/smartmoney.csv --diam
+
       # Run di branch fitur (fase-*) tidak meng-commit hasil/: main menerima
       # commit hasil tiap malam, jadi hasil yang juga di-commit di branch
       # fitur membuat pull request-nya konflik di hasil/*.csv. Hasil run
