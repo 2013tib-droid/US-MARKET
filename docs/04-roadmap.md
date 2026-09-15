@@ -45,7 +45,7 @@ dan **Low-Vol** (keduanya hanya butuh harga), `screener.py` versi minimum,
 | ≥ 1.400 emiten dalam ≤ 10 menit di Actions | 1.521 emiten; unduh + hitung 192 detik, seluruh job < 4 menit | ✅ |
 | Momentum & Low-Vol terisi ≥ 95% | 1.509 / 1.521 = 99,2%. Sebelas emiten baru IPO/spin-off < 1 tahun berlabel `DATA-KURANG`; satu (CWEN-A) tidak dimuat Yahoo, berlabel `GAGAL-UNDUH` | ✅ |
 | Run saat pasar buka = run pagi | Logikanya diuji unit test dengan jam buatan, termasuk tutup setengah hari 28 Nov 2025. Diuji dengan data sungguhan 14 Sep 2026 pukul 20:55 UTC — setelah bel, sebelum jeda final 60 menit: Yahoo sudah mengirim bar 14 Sep, sistem membuangnya dan tabel tetap bertanggal 11 Sep. Run 21:05 UTC memakainya. Run di tengah sesi sungguhan belum pernah dilakukan, tapi jalur kodenya sama | ✅ |
-| 3 malam berturut-turut otomatis | PR #1 digabung 14 Sep 2026; run terjadwal pertama 15 Sep 05:17 WIB. Dihitung setelah tiga pagi | ⏳ |
+| 3 malam berturut-turut otomatis | Malam 1 (data 14 Sep): jalan dan sukses, tapi terlambat 2 jam 20 menit dari jadwal karena antrean cron GitHub. Malam 2 dan 3 menyusul | ⏳ 1/3 |
 
 Universe nyatanya ± 1.520, bukan 1.550: 87 dari 102 emiten Nasdaq-100
 juga anggota S&P 500.

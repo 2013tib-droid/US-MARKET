@@ -72,8 +72,16 @@ kalau suatu hari mau backtest serius, ini yang dibeli).
                                          meta.json → commit → GitHub Pages
 ```
 
-Dua workflow terpisah dengan satu `concurrency: group: tulis-repo` — pola
-yang sudah terbukti di IDX menghindari dua run berebut push.
+Dua workflow terpisah, masing-masing dengan grup concurrency sendiri
+(`tulis-hasil` untuk screening, `tulis-data` untuk fundamental). Rancangan
+awalnya satu grup bersama seperti di IDX, tapi GitHub hanya menyimpan satu run
+yang menunggu per grup: pada 15 Sep 2026 run fundamental dibatalkan tanpa
+pernah jalan karena run screening terjadwal (terlambat 2 jam) memegang grup
+itu. Tabrakan push antar-workflow ditangani langkah commit masing-masing.
+
+Cron GitHub tidak tepat waktu. Run terjadwal pertama (22:17 UTC) baru jalan
+00:37 UTC. Itu tidak mengubah data (tetap penutupan hari itu), hanya jam
+dashboard diperbarui.
 
 ## 4. Struktur data
 

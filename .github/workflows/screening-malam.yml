@@ -23,10 +23,11 @@ permissions:
   # tidak disebut menjadi none).
   actions: read
 
-# Nama grup sama dengan repo Screening-Saham: setiap workflow yang commit ke
-# repo ini wajib memakainya supaya dua run tidak berebut push.
+# Satu grup per workflow penulis: dua run screening tidak boleh berebut
+# push hasil/. Workflow fundamental punya grupnya sendiri (tulis-data) —
+# alasannya di fundamental-mingguan.yml.
 concurrency:
-  group: tulis-repo
+  group: tulis-hasil
   cancel-in-progress: false
 
 jobs:

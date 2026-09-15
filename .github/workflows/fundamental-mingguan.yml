@@ -17,9 +17,15 @@ on:
 permissions:
   contents: write
 
-# Grup yang sama dengan screening-malam.yml: keduanya commit ke repo ini.
+# Grup sendiri, BUKAN satu grup dengan screening-malam.yml. GitHub hanya
+# menyimpan satu run yang menunggu per grup dan membatalkan yang lebih lama:
+# pada 15 Sep 2026 run terjadwal screening yang terlambat 2 jam memegang
+# grup bersama, lalu push yang memicu dua workflow sekaligus membuat run
+# fundamental dibatalkan tanpa pernah jalan. Dua workflow ini menulis folder
+# berbeda (data/ vs hasil/), dan tabrakan push sudah ditangani langkah commit
+# (ambil ulang remote, tulis ulang folder sendiri) — jadi grup terpisah aman.
 concurrency:
-  group: tulis-repo
+  group: tulis-data
   cancel-in-progress: false
 
 jobs:
