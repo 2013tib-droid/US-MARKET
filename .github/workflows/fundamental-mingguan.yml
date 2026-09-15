@@ -1,4 +1,4 @@
-name: Fundamental Mingguan
+name: Fundamental & Smart Money Mingguan
 
 on:
   schedule:
@@ -11,7 +11,9 @@ on:
     paths:
       - "usmarket/sec.py"
       - "usmarket/fundamental.py"
+      - "usmarket/smartmoney.py"
       - "scripts/perbarui_fundamental.py"
+      - "scripts/perbarui_smartmoney.py"
       - ".github/workflows/fundamental-mingguan.yml"
 
 permissions:
@@ -31,7 +33,11 @@ concurrency:
 jobs:
   fundamental:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Fundamental ± 4 menit. Smart money jauh lebih lama pada run pertama:
+    # setiap dokumen Form 4 dalam 90 hari harus diunduh sekali (± 20.000
+    # dokumen, 8 permintaan/detik ≈ 40 menit). Run berikutnya hanya mengambil
+    # yang belum ada di data/insider.csv, jadi ± 5 menit.
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v7
 
@@ -49,6 +55,17 @@ jobs:
         env:
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
         run: python scripts/perbarui_fundamental.py
+
+      # Form 4 dari EDGAR (inkremental lewat data/insider.csv) + kepemilikan
+      # institusi, short interest, dan estimasi analis dari Yahoo.
+      # continue-on-error: kalau bagian ini gagal, laporan keuangan yang sudah
+      # ditarik tetap di-commit — run malam masih punya empat faktor lamanya,
+      # hanya tanpa smart money.
+      - name: Tarik orang dalam, institusi, dan short interest
+        continue-on-error: true
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+        run: python scripts/perbarui_smartmoney.py
 
       - name: Commit data
         run: |

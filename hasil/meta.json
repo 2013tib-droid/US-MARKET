@@ -1,16 +1,20 @@
 {
-  "diperbarui": "2026-09-15T01:03:16Z",
-  "tanggal_data": "2026-09-11",
+  "diperbarui": "2026-09-15T06:22:22Z",
+  "tanggal_data": "2026-09-14",
   "bar_dibuang_belum_final": null,
-  "versi_skema": 2,
-  "fase": 2,
+  "versi_skema": 3,
+  "fase": 3,
   "jumlah_emiten": 1521,
   "gagal_unduh": 1,
   "faktor_terisi": 1509,
-  "lolos_likuiditas": 1440,
-  "lolos_trend_template": 250,
+  "lolos_likuiditas": 1439,
+  "lolos_trend_template": 242,
   "value_terisi": 1502,
   "quality_terisi": 1448,
+  "growth_terisi": 1250,
+  "smartmoney_terisi": 0,
+  "cluster_buy": 0,
   "fundamental_diperbarui": "2026-09-15T00:48:51Z",
-  "durasi_detik": 172.8
+  "smartmoney_diperbarui": null,
+  "durasi_detik": 152.6
 }

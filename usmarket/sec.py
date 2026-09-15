@@ -1,5 +1,6 @@
-"""Klien SEC EDGAR: peta ticker → CIK, companyfacts (XBRL), dan pencarian
-teks penuh untuk going concern dan restatement.
+"""Klien SEC EDGAR: peta ticker → CIK, companyfacts (XBRL), daftar filing
+satu emiten (untuk Form 4), unduhan dokumen arsip, dan pencarian teks penuh
+untuk going concern dan restatement.
 
 Aturan SEC yang wajib dipatuhi (https://www.sec.gov/os/accessing-edgar-data):
 - Header User-Agent berisi nama dan email. Tanpa itu SEC membalas 403.
@@ -22,6 +23,8 @@ BATAS_PER_DETIK = 8
 URL_TICKER = "https://www.sec.gov/files/company_tickers.json"
 URL_FACTS = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json"
 URL_CARI = "https://efts.sec.gov/LATEST/search-index"
+URL_SUBMISSIONS = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
+URL_ARSIP = "https://www.sec.gov/Archives/edgar/data/{cik}/{akses}/{berkas}"
 
 
 class TanpaUserAgent(RuntimeError):
@@ -81,6 +84,56 @@ class KlienSEC:
             return None
         r.raise_for_status()
         return r.json()
+
+    def submissions(self, cik: int) -> dict | None:
+        r = self.get(URL_SUBMISSIONS.format(cik=cik))
+        if r.status_code == 404:
+            return None
+        r.raise_for_status()
+        return r.json()
+
+    def filing_terbaru(self, cik: int, form: set[str], sejak: date) -> list[dict]:
+        """Filing emiten ini dengan form tertentu, dilapor sejak tanggal itu.
+
+        Form 4 terdaftar di dua tempat: di bawah CIK orang dalam yang
+        melapor dan di bawah CIK emitennya. Yang dipakai di sini yang kedua,
+        supaya satu permintaan per emiten cukup untuk menemukan seluruh
+        pelaporan orang dalamnya.
+
+        Hanya blok `recent` yang dibaca (± 1.000 filing terakhir, minimal
+        setahun). Untuk jendela 90 hari itu lebih dari cukup, kecuali emiten
+        yang melapor lebih dari seribu kali setahun — belum pernah ada.
+        """
+        data = self.submissions(cik)
+        if not data:
+            return []
+        recent = data.get("filings", {}).get("recent", {})
+        kolom = ("accessionNumber", "filingDate", "reportDate", "form", "primaryDocument")
+        if not all(k in recent for k in kolom):
+            return []
+        batas = sejak.isoformat()
+        hasil = []
+        for akses, tgl_lapor, tgl_periode, jenis, dokumen in zip(*(recent[k] for k in kolom)):
+            if jenis not in form or (tgl_lapor or "") < batas:
+                continue
+            hasil.append({"akses": akses, "tanggal_lapor": tgl_lapor,
+                          "tanggal_periode": tgl_periode or tgl_lapor, "form": jenis,
+                          "dokumen": dokumen})
+        return hasil
+
+    def dokumen(self, cik: int, akses: str, berkas: str) -> bytes | None:
+        """Isi satu dokumen dari arsip EDGAR.
+
+        `primaryDocument` untuk Form 4 biasanya menunjuk versi terjemahan
+        XSL-nya ("xslF345X05/wk-form4_1.xml") yang isinya HTML. Nama berkas
+        di belakangnya adalah XML aslinya, dan itu yang diambil.
+        """
+        nama = berkas.rsplit("/", 1)[-1]
+        r = self.get(URL_ARSIP.format(cik=cik, akses=akses.replace("-", ""), berkas=nama))
+        if r.status_code == 404:
+            return None
+        r.raise_for_status()
+        return r.content
 
     def cari_cik(self, frasa: str, forms: str, sejak: date, item: str | None = None) -> dict[int, str]:
         """CIK yang punya dokumen `forms` berisi `frasa` sejak tanggal itu.

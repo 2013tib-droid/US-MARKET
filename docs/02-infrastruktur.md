@@ -11,10 +11,10 @@ Tidak ada server, tidak ada database, tidak ada langganan.
 | Harga harian & intraday (H1) | **yfinance** | ✅ | ❌ | Tidak resmi; batch `yf.download` 1.500 ticker ± 3–5 menit | Sumber yang sama dengan repo IDX. Ticker AS tanpa suffix (`AAPL`); kelas saham pakai `-` (`BRK-B`) |
 | Fundamental resmi (10-K/10-Q, XBRL) | **SEC EDGAR `companyfacts` API** | ✅ | ❌ tapi **wajib header `User-Agent: nama email`** | 10 request/detik | Data primer, bukan turunan pihak ketiga. Satu request per emiten mengembalikan seluruh histori tag XBRL (`Revenues`, `NetIncomeLoss`, `NetCashProvidedByOperatingActivities`, …). 1.500 emiten ≈ 3–5 menit |
 | Peta ticker → CIK | SEC `company_tickers.json` | ✅ | ❌ | — | Diunduh di awal setiap pembaruan fundamental (satu berkas ± 800 KB); tidak disimpan karena selalu segar. Format ticker kelas saham sama dengan Yahoo (`BRK-B`) |
-| Transaksi insider (Form 4) | SEC EDGAR `submissions` API + XML Form 4 | ✅ | ❌ | 10 req/detik | Alternatif cepat: yfinance `insider_transactions` (lebih ringkas, sudah dibersihkan, tapi tidak lengkap) — dipakai dulu di Fase 3, EDGAR langsung kalau butuh cluster buy |
-| Kepemilikan institusi (13F) | yfinance `institutional_holders`, `major_holders` | ✅ | ❌ | — | Cukup untuk % kepemilikan & jumlah pemegang. Agregasi 13F penuh dari EDGAR ditunda — datanya besar (ribuan filer × ribuan posisi) |
+| Transaksi insider (Form 4) | SEC EDGAR `submissions` API + XML Form 4 | ✅ | ❌ | 10 req/detik | **Dipakai langsung, bukan lewat yfinance** (keputusan Fase 3): hanya dokumen aslinya yang memuat kode transaksi (`P` beli pasar terbuka vs `M` eksekusi opsi), CIK tiap pelapor untuk cluster buy, dan penanda rencana 10b5-1. Mahal — satu daftar filing per emiten + satu unduhan per dokumen — jadi transaksinya disimpan di `data/insider.csv` dan run berikutnya hanya mengambil nomor akses baru |
+| Kepemilikan institusi (13F) | yfinance `info` (`heldPercentInstitutions`) | ✅ | ❌ | — | Cukup untuk % kepemilikan. Perubahannya diukur terhadap snapshot mingguan repo sendiri, karena angka yfinance tidak menyebut kuartal 13F-nya. Agregasi 13F penuh dari EDGAR ditunda — datanya besar (ribuan filer × ribuan posisi) |
 | Short interest | yfinance `info` (`shortPercentOfFloat`, `shortRatio`, `sharesShort`) | ✅ | ❌ | — | Sumber aslinya FINRA, 2× sebulan |
-| Estimasi analis, target harga, tanggal earnings | yfinance `analyst_price_targets`, `recommendations`, `earnings_dates` | ✅ | ❌ | — | Konsensus lengkap (I/B/E/S, Zacks) berbayar; ini proksi |
+| Estimasi analis, target harga, tanggal earnings | yfinance `info` (`targetMeanPrice`, `recommendationMean`, `numberOfAnalystOpinions`, `forwardEps`) dan `earnings_dates` | ✅ | ❌ | — | Konsensus lengkap (I/B/E/S, Zacks) berbayar; ini proksi. Revisi target 3 bulan tidak ada di sini — dihitung sendiri dari `data/target_riwayat.csv`, snapshot mingguan yang dikumpulkan repo ini |
 | Makro | **FRED API** (REST) | ✅ | ✅ gratis, daftar sekali | 120 req/menit | Seri: `T10Y2Y`, `BAMLH0A0HYM2`, `DFF`, `UNRATE`, `VIXCLS` |
 | Konstituen S&P 500/400/600, Nasdaq-100 | Wikipedia (tabel ber-id `constituents`) | ✅ | ❌ tapi wajib User-Agent | — | Rapuh kalau tabelnya diubah editor. Tiap indeks divalidasi jumlah barisnya; yang tidak wajar dilewati dan berkas lamanya dipakai. Daftar Nasdaq-100 ada di halaman `List_of_NASDAQ-100_companies`, bukan halaman indeksnya, dan memakai sektor ICB yang dipetakan ke GICS |
 | Sektor & industri | yfinance `info` (`sector`, `industry`) | ✅ | ❌ | — | Bukan GICS resmi, tapi cukup untuk sektor-netral |
@@ -39,12 +39,19 @@ kalau suatu hari mau backtest serius, ini yang dibeli).
 3. **Earnings season** (minggu ke-2 sampai ke-6 setelah akhir kuartal) —
    ratusan emiten lapor per minggu. Cache fundamental harus diperbarui
    **mingguan selama earnings season**, cukup bulanan di luar itu.
-4. **Repo publik** (keputusan 14 Sep 2026). GitHub Actions dan Pages gratis
+4. **Form 4 mahal kalau diambil ulang tiap minggu.** Jendela 90 hari untuk
+   ± 1.500 emiten berisi puluhan ribu dokumen; pada 8 permintaan/detik itu
+   ± 40 menit. Karena itu `data/insider.csv` menyimpan transaksi pasar
+   terbuka (kode `P`/`S`) selama 180 hari dan di-commit: run mingguan
+   berikutnya hanya mengunduh nomor akses yang belum ada di sana (± 5 menit).
+   Yang disimpan hanya `P`/`S` — hibah dan eksekusi opsi jauh lebih banyak
+   jumlahnya dan tidak dipakai sama sekali.
+5. **Repo publik** (keputusan 14 Sep 2026). GitHub Actions dan Pages gratis
    tanpa batas menit untuk repo publik. Perkiraan pemakaian: run malam
    ± 10 menit × 21 hari + run fundamental ± 30 menit × 4 ≈ 330 menit/bulan.
    Konsekuensinya, isi repo terbaca siapa saja: jangan pernah commit API key
    atau data posisi pribadi — semuanya lewat GitHub Secrets.
-5. **Zona waktu**. NYSE tutup 16:00 ET. ET = UTC−4 saat DST (Maret–November),
+6. **Zona waktu**. NYSE tutup 16:00 ET. ET = UTC−4 saat DST (Maret–November),
    UTC−5 di luar itu. Cron GitHub dalam UTC, jadi satu jadwal harus menutupi
    keduanya: **22:17 UTC = 05:17 WIB** (WIB tidak bergeser). Tutup pasar
    paling lambat 21:00 UTC, jadi ada jeda ≥ 1 jam untuk data Yahoo final.
@@ -66,8 +73,11 @@ kalau suatu hari mau backtest serius, ini yang dibeli).
    SEC companyfacts + EDGAR FTS     │    screener.py --dari-csv … → hasil/akumulasi.csv
    → data/fundamental.csv           │                            → hasil/pantau.csv
  perbarui_smartmoney.py             │                            → hasil/value.csv
-   Form 4 + holders + short         ┘                            → hasil/quality.csv
-   → data/smartmoney.csv                 analisa_smc.py --dari-csv hasil/akumulasi.csv
+   Form 4 (inkremental) + institusi ┘                            → hasil/quality.csv
+   + short + target analis                                       → hasil/smartmoney.csv
+   → data/insider.csv,
+     data/smartmoney.csv,
+     data/target_riwayat.csv             analisa_smc.py --dari-csv hasil/akumulasi.csv
                                          uji_winrate.py  (arsip pick + hitung ulang)
                                          meta.json → commit → GitHub Pages
 ```
@@ -98,10 +108,13 @@ Dashboard menampilkan keduanya.
 | `tickers/watchlist.txt` | Manual: saham di luar indeks yang mau dipantau | Manual |
 | `data/fundamental.csv` | Satu baris per ticker: angka mentah TTM (atau tahun fiskal) dari XBRL, rasio yang tidak butuh harga, F-score, tag XBRL yang terpakai (`Tag_*`), tanggal going concern dan restatement, `Catatan` bila tidak bisa dihitung | Mingguan (Minggu 06:17 WIB) |
 | `data/fundamental_meta.json` | Waktu pembaruan, jumlah metrik inti terisi, daftar going concern, restatement, dan emiten berhistori pendek | Mingguan |
-| `data/smartmoney.csv` | Insider net 90 hari, cluster buy, % institusi, short % float, short ratio | Mingguan |
+| `data/smartmoney.csv` | Satu baris per ticker: insider net 90 hari, jumlah pembeli/penjual, cluster buy, % institusi dan perubahannya, short % float, short ratio, target & rekomendasi analis, revisi target 3 bulan, earnings surprise, tanggal lapkeu berikutnya. Persen disimpan sebagai persen (beda dari `fundamental.csv` yang menyimpan pecahan) | Mingguan |
+| `data/insider.csv` | Transaksi Form 4 mentah (kode `P`/`S` saja) 180 hari terakhir: tanggal, pelapor, jabatan, lembar, harga, nilai, penanda rencana 10b5-1, nomor akses EDGAR. Jejak audit sekaligus cache inkremental | Mingguan |
+| `data/target_riwayat.csv` | Snapshot mingguan target harga konsensus per ticker, satu tahun terakhir. Dari sini revisi 3 bulan dihitung — yfinance hanya memberi angka hari ini | Mingguan |
+| `data/smartmoney_meta.json` | Waktu pembaruan, jumlah dokumen Form 4 baru, daftar cluster buy, pembelian dan penjualan orang dalam terbesar, berapa kolom yfinance yang terisi | Mingguan |
 | `data/makro.csv` | Seri harian FRED + rezim yang diturunkan | Malam |
 | `hasil/semua.csv` | Tabel lengkap universe | Malam |
-| `hasil/akumulasi.csv`, `pantau.csv`, `value.csv`, `quality.csv` | Hasil saringan | Malam |
+| `hasil/tren.csv`, `value.csv`, `quality.csv`, `smartmoney.csv` | Hasil saringan (`akumulasi.csv` dan `pantau.csv` menyusul di Fase 4, saat ada skor komposit) | Malam |
 | `hasil/akumulasi_smc.csv` | Zona entri/stop/target | Malam |
 | `hasil/riwayat_pick.csv`, `hasil/winrate.csv` | Arsip pick dan hasilnya | Malam |
 | `hasil/meta.json` | Waktu run, rezim malam ini, jumlah emiten, versi skema | Malam |
