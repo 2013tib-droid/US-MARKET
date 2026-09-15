@@ -149,8 +149,12 @@ push ke branch `fase-*` yang menyentuh berkas smart money, jadi menggabungkan
 antrean itu tetap harus dibatalkan manual. Kalau nanti terulang: batalkan run
 `fase-*`-nya, biarkan yang di `main`.
 
-**Ketiga syarat "selesai" di atas belum diperiksa** — semuanya menuntut data
-sungguhan. Yang sudah diperiksa tanpa jaringan:
+**Satu dari tiga syarat "selesai" sudah lolos** (cluster buy), dua sisanya
+menunggu mesin dengan akses internet biasa — rinciannya di tabel syarat di
+bawah. Jalur ujung ke ujung sendiri sudah terbukti: `hasil/semua.csv`
+15 Sep 2026 punya `Z_SmartMoney` terisi untuk 1.521 emiten, 44 `ClusterBuy`,
+`Short_PctFloat` 1.136, dan `Institusi_Pct` 1.143. Yang sudah diperiksa tanpa
+jaringan:
 
 | Pemeriksaan | Hasil |
 |---|---|
@@ -170,22 +174,81 @@ jadi periksa `data/smartmoney_meta.json` sebelum percaya angkanya:
 | Kotak centang 10b5-1 memakai nama tag yang memuat "10b5" | `Insider_Rencana90H` nol di seluruh universe, padahal penjualan terjadwal lazim | Baca satu Form 4 penjualan besar, cari nama tag sebenarnya, sesuaikan `baca_form4` |
 | Nama medan yfinance (`heldPercentInstitutions`, `targetMeanPrice`, …) dan kolom `Ticker.earnings_dates` | `institusi_terisi`, `target_terisi`, atau `earnings_terisi` nol | Cetak satu `Ticker.info` dan sesuaikan `PETA_YAHOO` |
 
+**Ketiga dugaan itu ternyata benar** (run mingguan pertama, 15 Sep 2026
+08:25 UTC, 41 menit): 16.752 filing → 33.102 transaksi, jadi `primaryDocument`
+menunjuk XML yang benar; `Insider_Rencana90H` terisi di 446 emiten, jadi tag
+10b5-1 terbaca; `institusi_terisi` 1.143, `target_terisi` 1.132,
+`earnings_terisi` 509, jadi nama medan yfinance cocok. Tidak ada yang perlu
+ditambal.
+
 Setelah itu jalankan `python scripts/verifikasi_smartmoney.py --jumlah 10` —
 ia mencetak angka kita bersebelahan dengan versi Yahoo, ditambah tautan
 OpenInsider, Form 4 asli di EDGAR, dan short interest FINRA untuk ketiga
-syarat di atas — lalu isi tabel hasilnya di sini:
+syarat di atas. Hasilnya:
 
 | Syarat | Hasil | Status |
 |---|---|---|
-| Insider net 90 hari cocok dengan OpenInsider, 10 emiten | — | ⏳ |
-| Cluster buy terdeteksi pada minimal satu kasus nyata | — | ⏳ |
-| Short % float ± 1 poin dari FINRA | — | ⏳ |
+| Insider net 90 hari cocok dengan OpenInsider, 10 emiten | Belum diperiksa. Pembandingnya menuntut jaringan keluar: Yahoo, OpenInsider, dan sec.gov sama-sama ditolak proxy sandbox tempat verifikasi dijalankan (403 CONNECT), jadi kolom `Net_yahoo_jt` seluruhnya kosong. Harus dijalankan dari mesin dengan akses internet biasa | ⏳ |
+| Cluster buy terdeteksi pada minimal satu kasus nyata | **Lolos.** 44 cluster terdeteksi; seluruh 44 tereproduksi saat dihitung ulang dari `data/insider.csv` tanpa memanggil `usmarket.smartmoney`. Dua kasus dirinci di bawah. Uji negatif ikut lolos: RSG punya 86 pembelian pasar terbuka senilai $1,38 miliar tapi **satu** pelapor (Cascade Investment), dan benar tidak ditandai cluster | ✅ |
+| Short % float ± 1 poin dari FINRA | Belum diperiksa, alasan sama: finra.org dan nasdaq.com ditolak proxy yang sama. Tidak ada pembanding gratis yang bisa diunduh, jadi syarat ini memang menuntut pembacaan manusia | ⏳ |
 
-Dua kolom baru sengaja masih kosong sampai datanya terkumpul, dan itu bukan
-kerusakan: `Rev_CAGR3`/`EPS_CAGR3` terisi setelah `perbarui_fundamental.py`
-jalan sekali lagi (kolomnya baru ada di kode, belum di `data/fundamental.csv`
-yang sekarang), dan `Target_Revisi` setelah `data/target_riwayat.csv`
-mencapai tiga bulan (± 13 run mingguan).
+Dua cluster yang diperiksa baris per baris terhadap Form 4 aslinya:
+
+| Emiten | Tanggal cluster | Isi |
+|---|---|---|
+| GME | 2026-09-09 | Cheng (direktur) $1,03 jt 08 Sep; Grube (direktur) $0,20 jt 09 Sep; Cohen (direktur & pejabat) 1.000.000 lembar $20,4 jt 10 Sep; Attal (direktur) $0,10 jt 10 Sep. Akses `0000921895-26-002531` dkk. |
+| BSX | 2026-08-03 | Ludwig (direktur) $0,23 jt 31 Jul; Mahoney (CEO) 186.240 lembar $9,00 jt 03 Agu; Habiger (direktur) tiga kali 03–05 Agu; Morano (direktur) 25 Agu. Akses `0001225208-26-006950` dkk. |
+
+Satu catatan dari pemeriksaan yang sama: dari 44 cluster, **5 terjadi dalam
+satu hari saja** dan 4 di antaranya seluruhnya direktur. Yang paling mencolok
+SPG — 11 direktur membeli pada 30 Jun 2026 dengan lot ganjil kecil (2, 3, 41
+lembar), median per orang di bawah $25.000. Itu pola kompensasi direktur
+triwulanan yang kebetulan berkode `P`, bukan pembelian keyakinan. Hanya SPG
+yang sekecil itu dari 44, jadi belum jadi masalah, tapi kalau nanti cluster
+dipakai sebagai sinyal di Fase 4, saring dulu yang semua pembelinya direktur
+dan semuanya di satu tanggal.
+
+**Temuan verifikasi yang belum ditambal — transaksi hilang karena ticker
+teks bebas.** `Ticker` di `data/insider.csv` diambil dari medan simbol di
+Form 4, yang diisi filer semaunya: `NONE`, `(CALX)`, `NYSE: KRC`, `N O G`,
+`GEF, GEF-B`, `MOGA/MOGB`. Fallback ke CIK di `perbarui_smartmoney.py` hanya
+jalan kalau medan itu **kosong**, bukan kalau isinya salah bentuk. Karena
+`ringkas_insider` mengelompokkan per `Ticker` lalu hasilnya di-join ke
+universe, baris yang tickernya tidak cocok lenyap tanpa error.
+
+Ukurannya pada run 15 Sep 2026: 428 baris yatim dari 32.541 (1,3%); 176 di
+antaranya milik 17 emiten universe dan bisa diselamatkan lewat CIK; 45 di
+antaranya beli/jual pasar terbuka senilai $50,9 juta di 11 emiten. Jadi
+`Insider_Net90H_JutaUSD` untuk emiten seperti BIO, MOG-A, GEF, KRC, dan WLY
+saat ini kurang lengkap — terlalu kecil, tidak pernah terlalu besar.
+
+Perbaikannya kecil: kelompokkan per `CIK`, bukan per `Ticker`, lalu petakan
+CIK → ticker universe sekali di akhir. Perlu diputuskan sekalian bagaimana
+emiten multi-kelas ditangani, karena lima CIK memegang dua ticker universe
+(GOOG/GOOGL, FOX/FOXA, NWS/NWSA, UA/UAA, CENT/CENTA). Satu hal lagi yang
+ditemukan sambil lalu dan perlu dicek terpisah: ticker universe `DMC`
+memegang CIK 1047340, sedangkan Form 4 di bawah CIK yang sama menyebut
+simbolnya `FDP`.
+
+`Target_Revisi` masih kosong dan itu memang belum waktunya: ia baru terisi
+setelah `data/target_riwayat.csv` mencapai tiga bulan (± 13 run mingguan).
+Begitu pula `Institusi_Delta`, yang butuh satu run mingguan lagi sebagai
+pembanding.
+
+**`Rev_CAGR3`/`EPS_CAGR3` lain ceritanya — dugaan sebelumnya salah.** Di sini
+tadinya tertulis keduanya akan terisi begitu `perbarui_fundamental.py` jalan
+sekali lagi. Run itu sudah terjadi (15 Sep 2026 07:44 UTC, sukses, 1.521
+emiten), kolomnya sudah ada di `data/fundamental.csv`, dan isinya tetap **0
+dari 1.521**. Jadi ini kemungkinan cacat, bukan soal waktu.
+
+Yang sudah diketahui: `_cagr` menuntut angka tahun fiskal sekitar tiga tahun
+ke belakang dengan toleransi ± 60 hari, dan menolak basis nol atau negatif.
+Nol di seluruh universe — termasuk emiten besar yang pasti punya riwayat —
+menunjuk ke `tahunan()` yang tidak mengembalikan tahun sejauh itu, bukan ke
+penolakan basis negatif. Akar masalahnya belum bisa dipastikan tanpa jaringan
+ke `companyfacts` SEC; `data/fundamental.csv` hanya menyimpan hasil akhirnya,
+bukan deret tahunan yang jadi masukan. Karena `Z_Growth` ikut memakai kolom
+ini, ini harus ditutup sebelum Fase 4 memakai skor komposit.
 
 **Temuan yang mengubah rancangan**:
 
