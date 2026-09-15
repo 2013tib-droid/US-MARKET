@@ -132,11 +132,25 @@ tab **Smart money** di dashboard, dan `hasil/smartmoney.csv` tiap malam.
   contoh terkini saat fase ini dimulai).
 - Short % float cocok dengan angka FINRA terakhir ± 1 poin.
 
-**Status (15 Sep 2026)**: kode, uji, dokumen, dan workflow selesai; **ketiga
-syarat di atas belum bisa diperiksa** karena semuanya menuntut data sungguhan,
-dan pembaruannya baru jalan pada run mingguan berikutnya (Minggu 06:17 WIB)
-atau saat `Fundamental & Smart Money Mingguan` dijalankan manual. Yang sudah
-diperiksa tanpa jaringan:
+**Status (15 Sep 2026)**: kode, uji, dokumen, dan workflow selesai dan sudah
+digabung ke `main` lewat PR #4. Run malam pertama dengan skema 3 jalan sukses
+tanpa tangan: 1.521 emiten, 152 detik, `growth_terisi` 1.250, `Z_SmartMoney`
+nol emiten — memang nol, karena `data/smartmoney.csv` belum ada saat itu dan
+`hasil/smartmoney.csv` hanya berisi kepala kolom. Workflow **Fundamental &
+Smart Money Mingguan** dijalankan manual 15 Sep 2026 pukul 07:40 UTC untuk
+mengisinya; run pertama ± 40 menit karena mengunduh tiap Form 4 dalam jendela
+90 hari sekali.
+
+Satu jebakan yang ditemukan saat itu: workflow mingguan juga terpicu oleh
+push ke branch `fase-*` yang menyentuh berkas smart money, jadi menggabungkan
+`main` ke branch fitur menjadwalkan unduhan Form 4 kedua yang akan meng-commit
+`data/` ke branch itu. Grup concurrency `tulis-data` menahannya di antrean
+(bukan jalan berbarengan dan melewati batas 8 permintaan/detik SEC), tapi
+antrean itu tetap harus dibatalkan manual. Kalau nanti terulang: batalkan run
+`fase-*`-nya, biarkan yang di `main`.
+
+**Ketiga syarat "selesai" di atas belum diperiksa** — semuanya menuntut data
+sungguhan. Yang sudah diperiksa tanpa jaringan:
 
 | Pemeriksaan | Hasil |
 |---|---|
@@ -145,11 +159,33 @@ diperiksa tanpa jaringan:
 | Jalur unduh inkremental: nomor akses yang sudah tersimpan tidak diunduh lagi | `tests/test_sec_form4.py` dengan klien EDGAR tiruan |
 | Perakitan `hasil/semua.csv` dari tiga sumber, flag baru, dan dashboard | `tests/test_tabel.py` + `node scripts/uji_dashboard.js` terhadap pipeline penuh dengan harga & smart money buatan (1.521 baris) |
 
-Setelah run sungguhan yang pertama, jalankan
-`python scripts/verifikasi_smartmoney.py --jumlah 10` — ia mencetak angka kita
-bersebelahan dengan versi Yahoo, ditambah tautan OpenInsider, Form 4 asli di
-EDGAR, dan short interest FINRA untuk tiga syarat di atas — lalu isi tabel
-hasilnya di sini.
+**Yang harus dilihat pertama kali pada run mingguan itu** — tiga hal di
+`perbarui_smartmoney.py` adalah dugaan tentang bentuk API yang tidak bisa
+diuji tanpa jaringan. Semuanya gagal dengan diam (kolom kosong, bukan error),
+jadi periksa `data/smartmoney_meta.json` sebelum percaya angkanya:
+
+| Dugaan | Gejala kalau dugaannya salah | Kalau salah |
+|---|---|---|
+| `primaryDocument` Form 4 menunjuk versi terjemahan XSL, dan nama berkas di belakangnya adalah XML aslinya | `filing_baru` ribuan tapi `transaksi_baru` nol | Ambil `…-index.json` per filing untuk menemukan nama XML-nya (satu permintaan tambahan per dokumen) |
+| Kotak centang 10b5-1 memakai nama tag yang memuat "10b5" | `Insider_Rencana90H` nol di seluruh universe, padahal penjualan terjadwal lazim | Baca satu Form 4 penjualan besar, cari nama tag sebenarnya, sesuaikan `baca_form4` |
+| Nama medan yfinance (`heldPercentInstitutions`, `targetMeanPrice`, …) dan kolom `Ticker.earnings_dates` | `institusi_terisi`, `target_terisi`, atau `earnings_terisi` nol | Cetak satu `Ticker.info` dan sesuaikan `PETA_YAHOO` |
+
+Setelah itu jalankan `python scripts/verifikasi_smartmoney.py --jumlah 10` —
+ia mencetak angka kita bersebelahan dengan versi Yahoo, ditambah tautan
+OpenInsider, Form 4 asli di EDGAR, dan short interest FINRA untuk ketiga
+syarat di atas — lalu isi tabel hasilnya di sini:
+
+| Syarat | Hasil | Status |
+|---|---|---|
+| Insider net 90 hari cocok dengan OpenInsider, 10 emiten | — | ⏳ |
+| Cluster buy terdeteksi pada minimal satu kasus nyata | — | ⏳ |
+| Short % float ± 1 poin dari FINRA | — | ⏳ |
+
+Dua kolom baru sengaja masih kosong sampai datanya terkumpul, dan itu bukan
+kerusakan: `Rev_CAGR3`/`EPS_CAGR3` terisi setelah `perbarui_fundamental.py`
+jalan sekali lagi (kolomnya baru ada di kode, belum di `data/fundamental.csv`
+yang sekarang), dan `Target_Revisi` setelah `data/target_riwayat.csv`
+mencapai tiga bulan (± 13 run mingguan).
 
 **Temuan yang mengubah rancangan**:
 

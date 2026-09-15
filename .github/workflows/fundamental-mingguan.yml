@@ -58,10 +58,18 @@ jobs:
 
       # Form 4 dari EDGAR (inkremental lewat data/insider.csv) + kepemilikan
       # institusi, short interest, dan estimasi analis dari Yahoo.
+      #
+      # Dilewati pada run yang dipicu push ke branch fase-*: menggabungkan
+      # main ke branch fitur akan menjadwalkan unduhan Form 4 kedua yang
+      # meng-commit data/ ke branch itu, dan pada run pertama itu 40 menit
+      # sia-sia (15 Sep 2026: satu run harus dibatalkan manual). Untuk menguji
+      # bagian ini dari branch, jalankan workflow-nya lewat workflow_dispatch.
+      #
       # continue-on-error: kalau bagian ini gagal, laporan keuangan yang sudah
       # ditarik tetap di-commit — run malam masih punya empat faktor lamanya,
       # hanya tanpa smart money.
       - name: Tarik orang dalam, institusi, dan short interest
+        if: github.event_name != 'push'
         continue-on-error: true
         env:
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
