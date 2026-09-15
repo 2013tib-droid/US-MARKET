@@ -160,13 +160,16 @@ jobs:
           exit 1
 
       # Situs = dashboard/index.html + folder hasil/ di sebelahnya; dashboard
-      # membaca CSV lewat fetch relatif, jadi tidak ada build step.
+      # membaca CSV lewat fetch relatif, jadi tidak ada build step. Dokumen
+      # rancangan ditaruh di _site/docs/ sebagai HTML — Pages menyajikan .md
+      # sebagai text/markdown, yang oleh peramban diunduh, bukan ditampilkan.
       - name: Susun situs dashboard
         if: steps.bursa.outputs.jalan == 'true'
         run: |
           mkdir -p _site
           cp dashboard/index.html _site/
           cp -r hasil _site/
+          python scripts/susun_situs.py _site/docs
 
       - name: Aktifkan & konfigurasi GitHub Pages
         if: steps.bursa.outputs.jalan == 'true'
