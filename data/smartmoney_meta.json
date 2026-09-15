@@ -1,0 +1,150 @@
+{
+  "diperbarui": "2026-09-15T08:25:38Z",
+  "versi_skema": 3,
+  "jumlah_ticker": 1521,
+  "jendela_insider_hari": 90,
+  "form4": {
+    "filing_baru": 16752,
+    "transaksi_baru": 33102,
+    "gagal_daftar_cik": 0,
+    "gagal_dokumen": 0
+  },
+  "transaksi_disimpan": 32541,
+  "emiten_ada_transaksi_90h": 813,
+  "cluster_buy": [
+    "ACI",
+    "AHCO",
+    "AMH",
+    "AMR",
+    "APTV",
+    "BSX",
+    "CBU",
+    "CC",
+    "CE",
+    "COR",
+    "CSR",
+    "DFH",
+    "DKS",
+    "DTM",
+    "DY",
+    "ELAN",
+    "ELV",
+    "ENOV",
+    "FFIN",
+    "FISV",
+    "GME",
+    "GO",
+    "GSHD",
+    "HOG",
+    "HWKN",
+    "KMPR",
+    "KMT",
+    "KMX",
+    "MATW",
+    "MGY",
+    "MRP",
+    "MTDR",
+    "PFE",
+    "PNFP",
+    "RBA",
+    "REZI",
+    "SHEN",
+    "SPG",
+    "TNC",
+    "TSCO",
+    "TTMI",
+    "UBER",
+    "UMBF",
+    "VFC"
+  ],
+  "insider_beli_terbesar": [
+    [
+      "RSG",
+      1380.32
+    ],
+    [
+      "JEF",
+      642.75
+    ],
+    [
+      "GPI",
+      72.6
+    ],
+    [
+      "GME",
+      21.55
+    ],
+    [
+      "AAT",
+      18.98
+    ],
+    [
+      "ENR",
+      15.67
+    ],
+    [
+      "UBER",
+      15.31
+    ],
+    [
+      "AMR",
+      12.64
+    ],
+    [
+      "INTC",
+      10.0
+    ],
+    [
+      "BSX",
+      9.49
+    ]
+  ],
+  "insider_jual_terbesar": [
+    [
+      "LTH",
+      -1094.96
+    ],
+    [
+      "NVDA",
+      -832.48
+    ],
+    [
+      "DELL",
+      -688.18
+    ],
+    [
+      "CRWV",
+      -518.73
+    ],
+    [
+      "CRBG",
+      -491.37
+    ],
+    [
+      "ILMN",
+      -436.16
+    ],
+    [
+      "SN",
+      -421.03
+    ],
+    [
+      "PBF",
+      -392.63
+    ],
+    [
+      "FA",
+      -275.19
+    ],
+    [
+      "OPLN",
+      -274.38
+    ]
+  ],
+  "institusi_terisi": 1143,
+  "short_terisi": 1136,
+  "target_terisi": 1132,
+  "target_revisi_terisi": 0,
+  "earnings_terisi": 509,
+  "durasi_detik": 2471.6
+}
