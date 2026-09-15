@@ -25,7 +25,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from usmarket import VERSI_SKEMA, harga, tabel, universe, valuasi
+from usmarket import VERSI_SKEMA, harga, kalender, tabel, universe, valuasi
 
 AKAR = Path(__file__).resolve().parent
 KELUARAN_DEFAULT = AKAR / "hasil" / "semua.csv"
@@ -151,6 +151,12 @@ def tulis_meta(path: Path, hasil: pd.DataFrame, panel: harga.Panel, detik: float
         "diperbarui": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "tanggal_data": panel.tutup.index[-1].date().isoformat(),
         "bar_dibuang_belum_final": panel.bar_dibuang,
+        "bar_ditambal_dari_data_per_jam": panel.bar_ditambal,
+        # Bila Yahoo belum menyediakan penutupan sesi final terakhir (dan
+        # penambal pun gagal), tabel tertinggal satu sesi. Dashboard
+        # menampilkannya sebagai peringatan, bukan diam-diam.
+        "sesi_final_terakhir": kalender.sesi_final_terakhir().isoformat(),
+        "tertinggal_sesi": panel.tutup.index[-1].date() < kalender.sesi_final_terakhir(),
         "versi_skema": VERSI_SKEMA,
         "fase": 2,
         "jumlah_emiten": int(len(hasil)),
@@ -182,6 +188,12 @@ def main(argv=None) -> int:
         panel = harga.unduh(list(uni.index) + [tabel.BENCHMARK], periode=a.periode)
         if panel.bar_dibuang:
             print(f"Bar {panel.bar_dibuang} dibuang: sesinya belum tuntas.", file=sys.stderr)
+        if panel.bar_ditambal:
+            print(f"Bar {panel.bar_ditambal} tidak lengkap dari Yahoo; penutupan diambil dari data per jam.",
+                  file=sys.stderr)
+        if panel.tutup.index[-1].date() < kalender.sesi_final_terakhir():
+            print(f"PERHATIAN: data berhenti di {panel.tutup.index[-1].date()}, padahal sesi final "
+                  f"terakhir {kalender.sesi_final_terakhir()}.", file=sys.stderr)
         fund = pd.read_csv(FUNDAMENTAL, index_col="Ticker") if FUNDAMENTAL.exists() else None
         if fund is None:
             print(f"{FUNDAMENTAL.name} belum ada: kolom valuasi & kualitas kosong. "
