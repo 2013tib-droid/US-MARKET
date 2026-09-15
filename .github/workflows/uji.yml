@@ -19,3 +19,7 @@ jobs:
           cache: pip
       - run: pip install -r requirements-dev.txt
       - run: python -m pytest -q
+      # Menjalankan JavaScript dashboard yang sebenarnya di Node terhadap
+      # hasil/*.csv di repo: menangkap kolom yang hilang dan nilai yang bocor
+      # mentah ("undefined", "NaN") ke halaman.
+      - run: node scripts/uji_dashboard.js

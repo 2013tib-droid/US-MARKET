@@ -172,13 +172,26 @@ python uji_winrate.py                                # + pembanding SPY, QUAL, M
 
 ## 7. Dashboard
 
-Satu `index.html` statis yang membaca CSV lewat `fetch` — sama persis dengan
-IDX, jadi `dashboard/index.html` IDX menjadi titik awal. Tambahan khusus AS:
+Satu `index.html` statis yang membaca CSV lewat `fetch` — sistem desainnya
+disalin dari dashboard IDX (token warna, kartu, tab, tabel lengket, pager)
+supaya dua dashboard terasa satu keluarga. Dibangun lebih awal, 15 Sep 2026,
+bersama Fase 2; yang sudah ada:
+
+- Kartu + tab **Tren · Value · Quality · Semua**, kelompok kolom (Ringkas,
+  Faktor, Valuasi, Kualitas, Pertumbuhan, Teknikal), saringan sektor, indeks,
+  dan flag.
+- **Panel detail** saat baris diklik: batang empat faktor, valuasi dan
+  kualitas terhadap median sektor, arti setiap red flag, tautan ke SEC dan
+  Yahoo. Alamat `#TICKER` membukanya langsung.
+- `scripts/uji_dashboard.js` menjalankan JavaScript dashboard di Node dengan
+  DOM tiruan terhadap `hasil/*.csv` (dijalankan workflow Uji).
+
+Yang menyusul di fase berikutnya:
 
 - **Banner rezim** di atas: `RISK-ON · SPX +4,2% vs MA200 · VIX 14 · Guard: nonaktif`
   beserta bobot faktor yang sedang dipakai malam ini.
 - Kolom `Hari_Ke_Earnings` diwarnai merah bila ≤ 5.
-- Tab: Akumulasi · Pantau · Value · Quality · Semua · Winrate.
+- Tab Akumulasi · Pantau (Fase 4) dan halaman Winrate (Fase 5).
 - Harga dalam USD; **tidak** dikonversi ke rupiah di dashboard (kurs berubah,
   angkanya jadi menyesatkan). Kurs hari itu dicatat di meta.json saja.
 

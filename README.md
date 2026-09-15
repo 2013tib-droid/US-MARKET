@@ -11,6 +11,10 @@ dengan **kungfu yang berbeda**, karena pasarnya berbeda.
 > **belum ada rekomendasi beli/jual**. Urutan pembangunannya ada di
 > [docs/04-roadmap.md](docs/04-roadmap.md).
 
+**Dashboard: https://2013tib-droid.github.io/US-MARKET/** — diperbarui otomatis
+setiap malam hari bursa. Klik baris mana pun untuk panel detail emiten; alamat
+`…/US-MARKET/#AAPL` membuka detail AAPL langsung.
+
 ## Cara pakai
 
 ```bash

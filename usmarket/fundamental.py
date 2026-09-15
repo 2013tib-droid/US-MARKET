@@ -301,7 +301,8 @@ JATUH_TEMPO = ["LongTermDebtMaturitiesRepaymentsOfPrincipalInNextTwelveMonths",
 
 
 def utang_total(ss: dict[str, Seri], pada: date, cadangan: dict[str, Seri] | None = None,
-                bunga: float | None = None, aset: float | None = None) -> tuple[float | None, str]:
+                bunga: float | None = None, aset: float | None = None,
+                bukti_lain: bool = False) -> tuple[float | None, str]:
     """Utang berbunga (tanpa sewa operasi). Kombinasi tag yang dipakai dicatat
     karena emiten memecah utangnya dengan cara berbeda-beda.
 
@@ -338,6 +339,15 @@ def utang_total(ss: dict[str, Seri], pada: date, cadangan: dict[str, Seri] | Non
     if ada:
         return sum(ada.values()) + jpendek, "komponen:" + "+".join(ada)
 
+    # Total utang yang hanya diungkap di laporan tahunan (GM: 131,6 miliar per
+    # 31 Des 2025, tidak ada di 10-Q). Umurnya dibatasi 200 hari dan tetap
+    # berlabel "komponen:" supaya Keyakinan turun.
+    for tag in UTANG_GABUNGAN:
+        s = cadangan.get(tag)
+        lama = _terakhir(s, pada) if s else None
+        if lama is not None:
+            return lama[1] + jpendek, f"komponen:{tag} per {lama[0].isoformat()}"
+
     jadwal = [cadangan[t] for t in JATUH_TEMPO if t in cadangan]
     if jadwal:
         akhir = max(e for s in jadwal for (_, e) in s.fakta)
@@ -348,7 +358,36 @@ def utang_total(ss: dict[str, Seri], pada: date, cadangan: dict[str, Seri] | Non
 
     if bunga and bunga > 10e6 and aset and bunga / aset > 0.002:
         return None, "utang tidak terbaca (bunga material)"
+    if bukti_lain:
+        return None, "utang tidak terbaca (ada penerbitan/pelunasan utang)"
     return 0.0, "tidak ada tag utang"
+
+
+def _terakhir(s: Seri, pada: date, maks_hari: int = 200) -> tuple[date, float] | None:
+    """Nilai neraca terbaru yang tidak lebih tua dari `maks_hari` sebelum `pada`."""
+    calon = [(e, v) for (st, e), v in s.fakta.items() if st is None and -10 <= _hari(e, pada) <= maks_hari]
+    return max(calon) if calon else None
+
+
+# Jejak adanya utang di laporan arus kas dan neraca. Emiten dengan anak usaha
+# pembiayaan (Ford, GM) melaporkan saldo utangnya per segmen, sehingga tidak
+# ada angka total non-dimensional — tapi penerbitan dan pelunasan utangnya
+# tetap tercatat (Ford Q1 2026: terbit 12,6 miliar, lunas 15,6 miliar).
+BUKTI_UTANG = ["ProceedsFromIssuanceOfLongTermDebt", "RepaymentsOfLongTermDebt",
+               "ProceedsFromIssuanceOfDebt", "RepaymentsOfDebt", "InterestPayableCurrent",
+               "InterestPaidNet", "ProceedsFromDebtMaturingInMoreThanThreeMonths",
+               "RepaymentsOfDebtMaturingInMoreThanThreeMonths"]
+
+
+def ada_bukti_utang(fk: dict, pada: date, aset: float | None) -> bool:
+    """True bila dalam 400 hari terakhir ada aktivitas utang > 0,5% aset."""
+    if not aset:
+        return False
+    for tag in BUKTI_UTANG:
+        for (_, e), v in _fakta_tag(fk, tag, "USD").items():
+            if 0 <= _hari(e, pada) <= 400 and abs(v) > 0.005 * aset:
+                return True
+    return False
 
 
 def _fscore(k: dict) -> tuple[int | None, str]:
@@ -477,9 +516,11 @@ def ekstrak(facts: dict, keuangan: bool = False, hari_ini: date | None = None) -
                       if (f := _fakta_tag(fk, t, "USD"))}
     # Bukti adanya utang: beban bunga, atau bunga yang dibayar (arus kas).
     bunga = max(alur("BebanBunga") or 0.0, alur("BungaDibayar") or 0.0)
-    r["Utang"], r["Tag_Utang"] = utang_total(ss, periode, cadangan_utang, bunga, r["Aset"])
+    r["Utang"], r["Tag_Utang"] = utang_total(ss, periode, cadangan_utang, bunga, r["Aset"],
+                                             ada_bukti_utang(fk, periode, r["Aset"]))
     utang_lalu, _ = utang_total(ss, lalu, cadangan_utang,
-                                max(alur("BebanBunga", lalu) or 0.0, alur("BungaDibayar", lalu) or 0.0), r["Aset_Awal"])
+                                max(alur("BebanBunga", lalu) or 0.0, alur("BungaDibayar", lalu) or 0.0), r["Aset_Awal"],
+                                ada_bukti_utang(fk, lalu, r["Aset_Awal"]))
 
     saham, tag_saham, tgl_saham = saham_beredar(fk, periode)
     r["Saham"], r["Tag_Saham"] = saham, tag_saham

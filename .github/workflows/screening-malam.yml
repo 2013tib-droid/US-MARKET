@@ -16,6 +16,12 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+  # Disyaratkan actions/deploy-pages untuk mencari artifact lewat API Actions
+  # (pelajaran dari Screening-Saham: blok permissions eksplisit menyetel yang
+  # tidak disebut menjadi none).
+  actions: read
 
 # Nama grup sama dengan repo Screening-Saham: setiap workflow yang commit ke
 # repo ini wajib memakainya supaya dua run tidak berebut push.
@@ -24,9 +30,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Job screening sengaja TIDAK memakai environment github-pages: environment
+  # itu dibatasi ke branch default dan diperiksa sebelum job jalan, jadi run
+  # dari branch fase-* akan gagal seketika. Deploy dipisah ke job `deploy`.
   screening:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      jalan: ${{ steps.bursa.outputs.jalan }}
     steps:
       - uses: actions/checkout@v7
 
@@ -134,3 +145,37 @@ jobs:
           done
           echo "Push tetap gagal setelah 3 percobaan." >&2
           exit 1
+
+      # Situs = dashboard/index.html + folder hasil/ di sebelahnya; dashboard
+      # membaca CSV lewat fetch relatif, jadi tidak ada build step.
+      - name: Susun situs dashboard
+        if: steps.bursa.outputs.jalan == 'true'
+        run: |
+          mkdir -p _site
+          cp dashboard/index.html _site/
+          cp -r hasil _site/
+
+      - name: Aktifkan & konfigurasi GitHub Pages
+        if: steps.bursa.outputs.jalan == 'true'
+        uses: actions/configure-pages@v6
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v5
+        if: steps.bursa.outputs.jalan == 'true'
+        with:
+          path: _site
+
+  # Deploy hanya dari branch default (environment github-pages menolak branch
+  # lain) dan hanya bila screening benar-benar jalan (bukan hari libur NYSE).
+  deploy:
+    needs: screening
+    if: needs.screening.outputs.jalan == 'true' && github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy ke GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v5

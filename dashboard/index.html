@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>US Market Screener</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗽</text></svg>">
+<style>
+  /* Sistem desain disalin dari dashboard Screening-Saham (IDX) supaya dua
+     dashboard terasa satu keluarga: token warna, kartu, tab, tabel lengket,
+     pager. Yang berbeda hanya isinya. */
+  :root {
+    color-scheme: light;
+    --surface: #f6f6f4;
+    --surface-raised: #ffffff;
+    --surface-sunken: #efeeeb;
+    --head-bg: #f8f8f6;
+    --zebra: #fafaf9;
+    --border: #e4e3df;
+    --border-soft: #eceae6;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #8a8984;
+    --accent: #2a78d6;
+    --accent-strong: #1c5fae;
+    --accent-soft: #e8f0fb;
+    --chip-bg: #efeeea;
+    --row-hover: #eef4fc;
+    --pos-bg: #e0f2e6; --pos-fg: #14663a;
+    --neg-bg: #fbe7e5; --neg-fg: #a3261d;
+    --warn-bg: #fbeed6; --warn-fg: #7a5200;
+    --info-bg: #e8f0fb; --info-fg: #1c5fae;
+    --shadow-sm: 0 1px 2px rgba(16,15,14,.05);
+    --shadow-md: 0 2px 4px rgba(16,15,14,.06), 0 8px 24px -12px rgba(16,15,14,.14);
+    --shadow-lg: 0 12px 40px -8px rgba(16,15,14,.28);
+    --sticky-shadow: 10px 0 12px -10px rgba(16,15,14,.35);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --surface: #131312;
+      --surface-raised: #1e1e1d;
+      --surface-sunken: #191918;
+      --head-bg: #262625;
+      --zebra: #212120;
+      --border: #3a3936;
+      --border-soft: #2e2d2b;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #8a8984;
+      --accent: #3987e5;
+      --accent-strong: #83b3f2;
+      --accent-soft: #1e3350;
+      --chip-bg: #32312f;
+      --row-hover: #26313f;
+      --pos-bg: #17361f; --pos-fg: #74d18e;
+      --neg-bg: #3b1e1b; --neg-fg: #f19b93;
+      --warn-bg: #372d15; --warn-fg: #e3bd6b;
+      --info-bg: #1e3350; --info-fg: #83b3f2;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.35);
+      --shadow-md: 0 2px 4px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.7);
+      --shadow-lg: 0 12px 40px -8px rgba(0,0,0,.8);
+      --sticky-shadow: 10px 0 12px -10px rgba(0,0,0,.75);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--surface);
+    color: var(--text-primary);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: none; margin: 0 auto; padding: 22px clamp(10px, 1.4vw, 24px) 56px; }
+
+  header {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px;
+    padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: clamp(1.3rem, 1.1rem + .7vw, 1.7rem); letter-spacing: -.02em; margin: 0; }
+  header h1 .ikon { margin-right: 6px; }
+  header p { margin: 0; color: var(--text-secondary); font-size: .875rem; }
+  header .lain { margin-left: auto; font-size: .85rem; color: var(--accent); text-decoration: none; font-weight: 600; }
+  header .lain:hover { text-decoration: underline; }
+  .titik { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%;
+           background: var(--pos-fg); vertical-align: middle; }
+  .titik.basi { background: var(--warn-fg); }
+  .catatan-atas { margin: 12px 0 0; font-size: .8rem; color: var(--text-muted); }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; margin: 20px 0; }
+  .tile {
+    position: relative; display: block; width: 100%; text-align: left; font: inherit; color: inherit;
+    background: var(--surface-raised); border: 1px solid var(--border); border-radius: 12px;
+    padding: 13px 16px 14px 18px; overflow: hidden; box-shadow: var(--shadow-sm); cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  }
+  .tile::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--pita, var(--accent)); }
+  .tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--pita, var(--accent)); }
+  .tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tile.aktif { border-color: var(--pita, var(--accent)); box-shadow: var(--shadow-md); }
+  .tile .label { font-size: .72rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+  .tile .value { font-size: 1.9rem; font-weight: 680; line-height: 1.15; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .tile .sub { font-size: .76rem; color: var(--text-muted); line-height: 1.35; }
+  .tile[data-tab="tren"]    { --pita: #2a78d6; }
+  .tile[data-tab="value"]   { --pita: #17915a; }
+  .tile[data-tab="quality"] { --pita: #c07a11; }
+  .tile[data-tab="semua"]   { --pita: #7a6ce0; }
+
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 16px 0 12px; padding: 10px 12px;
+    background: var(--surface-raised); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-sm);
+  }
+  .tabs { display: flex; gap: 2px; flex-wrap: wrap; padding: 3px; background: var(--surface-sunken); border-radius: 10px; }
+  .tabs button {
+    border: 0; background: transparent; color: var(--text-secondary); border-radius: 8px; padding: 6px 15px;
+    font: inherit; font-size: .875rem; font-weight: 550; cursor: pointer; transition: background .12s ease, color .12s ease;
+  }
+  .tabs button:hover { color: var(--text-primary); }
+  .tabs button.active { background: var(--surface-raised); color: var(--accent-strong); font-weight: 650; box-shadow: var(--shadow-sm); }
+  .pisah { width: 1px; align-self: stretch; background: var(--border); margin: 2px 2px; }
+  select, input[type="search"] {
+    padding: 7px 11px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-raised);
+    color: var(--text-primary); font: inherit; font-size: .875rem;
+  }
+  select:hover, input[type="search"]:hover { border-color: var(--text-muted); }
+  select:focus-visible, input[type="search"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  #cari { flex: 1; min-width: 170px; max-width: 320px; }
+  .hitung { margin-left: auto; font-size: .8rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+  .panel { border: 1px solid var(--border); border-radius: 12px; background: var(--surface-raised); box-shadow: var(--shadow-sm); overflow: hidden; }
+  .tablewrap { overflow-x: auto; overscroll-behavior-x: contain; scroll-behavior: smooth; }
+  .tablewrap::-webkit-scrollbar { height: 10px; }
+  .tablewrap::-webkit-scrollbar-track { background: var(--surface-sunken); }
+  .tablewrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; border: 2px solid var(--surface-sunken); }
+
+  table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1900px; font-size: .875rem; }
+  table.sempit { min-width: 980px; }
+  thead th {
+    position: sticky; top: 0; z-index: 2; background: var(--head-bg); border-bottom: 1px solid var(--border);
+    padding: 10px; text-align: right; font-weight: 650; font-size: .74rem; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--text-secondary); white-space: nowrap; cursor: pointer; user-select: none;
+  }
+  thead th:hover { color: var(--accent); background: var(--accent-soft); }
+  thead th.terurut { color: var(--accent); }
+  thead th .arah { font-size: .7rem; }
+  tbody tr { background: var(--surface-raised); transition: background .08s ease; cursor: pointer; }
+  tbody tr:nth-child(even) { background: var(--zebra); }
+  tbody tr:hover { background: var(--row-hover); }
+  tbody tr.dipilih { background: var(--accent-soft); }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid var(--border-soft); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  tbody tr:last-child td { border-bottom: none; }
+  th.kiri, td.kiri { text-align: left; }
+  th.lengket, td.lengket { position: sticky; left: 0; background: inherit; }
+  thead th.lengket { z-index: 3; background: var(--head-bg); }
+  tbody td.lengket { z-index: 1; }
+  .tablewrap.tergulir th.lengket, .tablewrap.tergulir td.lengket { box-shadow: var(--sticky-shadow); }
+  td.ticker { font-weight: 680; letter-spacing: .01em; color: var(--accent-strong); }
+  td .nama { color: var(--text-secondary); display: inline-block; max-width: 240px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+
+  /* Z-score: diwarnai hanya di luar ±1 — satu simpangan dari rata-rata
+     sektornya. Di antaranya polos, supaya yang berwarna berarti sesuatu. */
+  .z { display: inline-block; min-width: 50px; padding: 2px 7px; border-radius: 6px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .z.z-kuat  { background: var(--pos-bg); color: var(--pos-fg); }
+  .z.z-lemah { background: var(--neg-bg); color: var(--neg-fg); }
+  .skor { display: inline-block; min-width: 30px; text-align: center; padding: 3px 8px; border-radius: 6px; font-weight: 700;
+          font-variant-numeric: tabular-nums; background: var(--chip-bg); color: var(--text-secondary); }
+  .skor.sk-kuat   { background: var(--pos-bg);  color: var(--pos-fg); }
+  .skor.sk-sedang { background: var(--warn-bg); color: var(--warn-fg); }
+  .skor.sk-lemah  { background: var(--neg-bg);  color: var(--neg-fg); }
+  .redup { color: var(--text-muted); }
+  .tt-ya { color: var(--pos-fg); font-weight: 700; }
+
+  /* Flag berat merah, peringatan kuning: dua tingkat itu yang menentukan
+     apakah sebuah emiten masuk daftar value/quality atau tidak. */
+  .flag { display: inline-block; margin: 1px 3px 1px 0; padding: 1px 6px; border-radius: 4px; font-size: .66rem;
+          font-weight: 700; white-space: nowrap; background: var(--warn-bg); color: var(--warn-fg); }
+  .flag.berat { background: var(--neg-bg); color: var(--neg-fg); }
+
+  .pager { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--border); background: var(--head-bg); }
+  .pager button.nav {
+    display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--surface-raised); color: var(--text-secondary);
+    font-size: .9rem; line-height: 1; cursor: pointer;
+  }
+  .pager button.nav:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .pager button.nav:disabled { opacity: .35; cursor: default; }
+  .pager .dots { display: flex; gap: 5px; flex: 1; }
+  .pager .dots button { flex: 1; max-width: 72px; height: 6px; padding: 0; border: 0; border-radius: 999px; background: var(--border); cursor: pointer; }
+  .pager .dots button.aktif { background: var(--accent); }
+  .pager .posisi { font-size: .78rem; color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .rowpager { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 9px 12px; border-top: 1px solid var(--border); background: var(--surface-raised); }
+  .rowpager .info { font-size: .8rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .halaman { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+  .halaman button {
+    min-width: 30px; height: 30px; padding: 0 8px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface-raised); color: var(--text-secondary); font: inherit; font-size: .82rem; cursor: pointer;
+  }
+  .halaman button:hover:not(:disabled):not(.aktif) { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); }
+  .halaman button.aktif { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 650; cursor: default; }
+  .halaman button:disabled { opacity: .35; cursor: default; }
+  .halaman .jeda { color: var(--text-muted); min-width: 16px; text-align: center; }
+  .perhal { font-size: .8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+  .perhal select { padding: 4px 8px; font-size: .8rem; }
+  .kosong, .gagal { padding: 40px 16px; text-align: center; color: var(--text-secondary); font-size: .92rem; }
+
+  /* ---- Panel detail emiten ---- */
+  .tirai { position: fixed; inset: 0; background: rgba(0,0,0,.28); z-index: 20; }
+  aside#detail {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100vw); z-index: 21; overflow-y: auto;
+    background: var(--surface-raised); border-left: 1px solid var(--border); box-shadow: var(--shadow-lg);
+    padding: 20px 22px 40px;
+  }
+  aside#detail h2 { margin: 0; font-size: 1.35rem; letter-spacing: -.01em; }
+  aside#detail h2 small { font-size: .9rem; font-weight: 500; color: var(--text-secondary); margin-left: 6px; }
+  aside#detail h3 { font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin: 22px 0 8px; }
+  aside#detail .sub { color: var(--text-secondary); font-size: .85rem; margin-top: 2px; }
+  aside#detail .tutup { position: sticky; top: 0; float: right; border: 1px solid var(--border); background: var(--surface-raised);
+    color: var(--text-secondary); border-radius: 8px; width: 32px; height: 32px; font-size: 1rem; cursor: pointer; }
+  aside#detail .tutup:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .ringkas-angka { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .ringkas-angka div { background: var(--surface-sunken); border-radius: 10px; padding: 8px 10px; }
+  .ringkas-angka b { display: block; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+  .ringkas-angka span { font-size: .72rem; color: var(--text-muted); }
+  .batang { display: grid; grid-template-columns: 90px 1fr 56px; align-items: center; gap: 10px; margin: 7px 0; font-size: .85rem; }
+  .batang .rel { position: relative; height: 10px; background: var(--surface-sunken); border-radius: 999px; }
+  .batang .rel::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--text-muted); }
+  .batang .isi { position: absolute; top: 0; bottom: 0; border-radius: 999px; }
+  .batang .isi.pos { background: var(--pos-fg); }
+  .batang .isi.neg { background: var(--neg-fg); }
+  .batang .angka { text-align: right; font-variant-numeric: tabular-nums; font-weight: 650; }
+  table.banding { min-width: 0; width: 100%; font-size: .85rem; }
+  table.banding td, table.banding th { padding: 5px 6px; border-bottom: 1px solid var(--border-soft); cursor: default; }
+  table.banding th { position: static; text-transform: none; letter-spacing: 0; font-size: .75rem; background: none; }
+  table.banding tr { cursor: default; background: none !important; }
+  .flag-list { margin: 0; padding-left: 0; list-style: none; font-size: .85rem; }
+  .flag-list li { margin: 6px 0; }
+  .tautan { display: flex; gap: 14px; flex-wrap: wrap; font-size: .85rem; margin-top: 18px; }
+  .tautan a { color: var(--accent); font-weight: 600; text-decoration: none; }
+  .tautan a:hover { text-decoration: underline; }
+  .perintah { font: .8rem/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; background: var(--surface-sunken);
+              padding: 8px 10px; border-radius: 8px; overflow-x: auto; white-space: nowrap; }
+
+  details { margin-top: 18px; font-size: .85rem; color: var(--text-secondary); background: var(--surface-raised);
+            border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; }
+  details[open] { box-shadow: var(--shadow-sm); }
+  details summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+  details dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 12px 0 0; }
+  details dt { font-weight: 650; color: var(--text-primary); }
+  details dd { margin: 0; }
+  footer { margin-top: 24px; font-size: .78rem; color: var(--text-muted); }
+  footer a { color: var(--accent); }
+
+  @media (max-width: 640px) {
+    .controls { gap: 8px; padding: 9px; }
+    .pisah { display: none; }
+    #cari { max-width: none; }
+    .hitung { margin-left: 0; }
+    .tile .value { font-size: 1.6rem; }
+    header .lain { margin-left: 0; }
+    details dl { grid-template-columns: 1fr; }
+    details dt { margin-top: 8px; }
+    .ringkas-angka { grid-template-columns: repeat(2, 1fr); }
+    .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .tile { padding: 10px 12px 11px 14px; }
+    .tile .sub { font-size: .7rem; }
+    header p { flex-basis: 100%; }
+    select { flex: 1 1 140px; min-width: 0; }
+    #cari { flex: 1 1 100%; min-width: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="ikon">🗽</span>US Market Screener</h1>
+    <p><span class="titik" id="titik"></span><span id="pembaruan">Memuat data …</span></p>
+    <a class="lain" href="https://github.com/2013tib-droid/US-MARKET#readme">Cara kerja &amp; dokumen →</a>
+  </header>
+  <p class="catatan-atas">Alat bantu riset, bukan rekomendasi. Skor komposit dan status beli/jual belum ada (Fase 4) —
+    daftar di bawah adalah saringan, bukan anjuran.</p>
+
+  <div class="tiles" id="tiles">
+    <button type="button" class="tile aktif" data-tab="tren"><div class="label">Tren kuat</div><div class="value" id="t-tren">–</div><div class="sub">Trend template lolos, RS rating ≥ 70, tanpa flag berat</div></button>
+    <button type="button" class="tile" data-tab="value"><div class="label">Murah di sektornya</div><div class="value" id="t-value">–</div><div class="sub">Z Value ≥ 1, F-score ≥ 6, keyakinan data ≥ 70</div></button>
+    <button type="button" class="tile" data-tab="quality"><div class="label">Berkualitas di sektornya</div><div class="value" id="t-quality">–</div><div class="sub">Z Quality ≥ 1, F-score ≥ 6, keyakinan data ≥ 70</div></button>
+    <button type="button" class="tile" data-tab="semua"><div class="label">Emiten dipantau</div><div class="value" id="t-semua">–</div><div class="sub">S&amp;P 500, 400, 600 + Nasdaq-100</div></button>
+  </div>
+
+  <div class="controls">
+    <div class="tabs" role="tablist">
+      <button data-tab="tren" class="active">Tren</button>
+      <button data-tab="value">Value</button>
+      <button data-tab="quality">Quality</button>
+      <button data-tab="semua">Semua</button>
+    </div>
+    <div class="pisah"></div>
+    <select id="kelompok" aria-label="Pilih kelompok kolom">
+      <option value="ringkas" selected>Ringkas</option>
+      <option value="faktor">Faktor</option>
+      <option value="valuasi">Valuasi</option>
+      <option value="kualitas">Kualitas</option>
+      <option value="tumbuh">Pertumbuhan</option>
+      <option value="teknikal">Teknikal</option>
+      <option value="">Semua kolom</option>
+    </select>
+    <select id="sektor" aria-label="Saring berdasarkan sektor"><option value="">Semua sektor</option></select>
+    <select id="indeks" aria-label="Saring berdasarkan indeks">
+      <option value="">Semua indeks</option>
+      <option value="SP500">S&amp;P 500</option>
+      <option value="SP400">S&amp;P 400 (mid cap)</option>
+      <option value="SP600">S&amp;P 600 (small cap)</option>
+      <option value="NDX">Nasdaq-100</option>
+    </select>
+    <select id="saringflag" aria-label="Saring berdasarkan red flag">
+      <option value="">Semua flag</option>
+      <option value="berat">Tanpa flag berat</option>
+      <option value="bersih">Tanpa flag apa pun</option>
+    </select>
+    <input id="cari" type="search" placeholder="Cari ticker / nama …" autocomplete="off">
+    <span class="hitung" id="hitung"></span>
+  </div>
+
+  <div class="panel">
+    <div class="tablewrap" id="tabel"><div class="kosong">Memuat data …</div></div>
+    <div class="pager" id="pager" hidden>
+      <button type="button" class="nav" id="ke-kiri" aria-label="Geser kolom ke kiri">◀</button>
+      <div class="dots" id="pager-dots"></div>
+      <button type="button" class="nav" id="ke-kanan" aria-label="Geser kolom ke kanan">▶</button>
+      <span class="posisi" id="pager-posisi"></span>
+    </div>
+    <div class="rowpager" id="rowpager" hidden>
+      <span class="info" id="rp-info"></span>
+      <label class="perhal">Baris per halaman
+        <select id="perhal" aria-label="Jumlah baris per halaman">
+          <option value="10">10</option>
+          <option value="25" selected>25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="0">Semua</option>
+        </select>
+      </label>
+      <div class="halaman" id="rp-halaman"></div>
+    </div>
+  </div>
+
+  <details>
+    <summary>Arti kolom &amp; cara pakai</summary>
+    <dl>
+      <dt>Klik baris</dt><dd>Membuka panel detail emiten: posisi empat faktor, valuasi dan kualitas
+      dibanding median sektornya, rincian red flag, dan tautan ke laporan di SEC.</dd>
+      <dt>Z Value, Z Quality, Z Momentum, Z Low-Vol</dt><dd>Z-score <strong>di dalam sektornya sendiri</strong>,
+      dipangkas di ±3. 0 = rata-rata sektor; +1 = satu simpangan di atasnya. Diwarnai hanya di luar ±1:
+      <span class="z z-kuat">+1,20</span> kuat, <span class="z z-lemah">−1,40</span> lemah. Bank dibandingkan
+      dengan bank, software dengan software — bukan satu sama lain.
+        <ul style="margin:6px 0 0; padding-left:18px">
+          <li><strong>Value</strong>: EBITDA/EV, laba/harga, FCF yield, nilai buku/harga. Tinggi = murah.</li>
+          <li><strong>Quality</strong>: ROIC, margin kotor, stabilitas margin, utang rendah, akrual rendah.</li>
+          <li><strong>Momentum</strong>: return 12 dan 6 bulan sampai sebulan lalu, dibagi volatilitas.</li>
+          <li><strong>Low-Vol</strong>: volatilitas, beta, dan penurunan terdalam setahun yang rendah.</li>
+        </ul></dd>
+      <dt>RS</dt><dd>RS rating 1–99 terhadap seluruh universe, ala IBD. 80 = lebih kuat dari 80% saham lain.</dd>
+      <dt>F-score</dt><dd>Piotroski 0–9: berapa dari sembilan sisi fundamental yang membaik dari tahun lalu.
+      <span class="skor sk-kuat">7+</span> kuat, <span class="skor sk-sedang">4–6</span> campuran,
+      <span class="skor sk-lemah">≤ 3</span> memburuk (flag berat). Tidak dihitung untuk bank.</dd>
+      <dt>Keyakinan</dt><dd>0–100: seberapa jauh angka laporan keuangan baris itu boleh dipercaya —
+      <strong>bukan</strong> seberapa yakin sahamnya naik. Turun bila basisnya tahunan, metrik inti kosong,
+      utang terbaca dari tag komponen, atau emitennya bank.</dd>
+      <dt>Red flag</dt><dd>
+        <span class="flag berat">merah</span> = flag berat, menggugurkan dari daftar Value dan Quality.
+        <span class="flag">kuning</span> = peringatan, perlu dibaca tapi tidak menggugurkan.
+        Arti setiap flag ada di panel detail saat emitennya diklik.</dd>
+      <dt>P/E, EV/EBITDA, P/B</dt><dd>Kelipatan valuasi dengan harga penutupan terakhir dan laporan empat
+      kuartal terakhir (TTM). Kosong bila penyebutnya negatif (rugi, EBITDA negatif, ekuitas negatif).</dd>
+      <dt>FCF%, Div%, SH yield%</dt><dd>Arus kas bebas, dividen, dan shareholder yield (dividen + buyback −
+      penerbitan saham) sebagai persen market cap.</dd>
+      <dt>ROIC%</dt><dd>Laba operasi setelah pajak ÷ (utang berbunga + ekuitas).</dd>
+      <dt>Akrual%</dt><dd>(Laba bersih − arus kas operasi) ÷ aset. Positif besar = laba belum menjadi kas.</dd>
+      <dt>Altman Z</dt><dd>Risiko kebangkrutan; di bawah 1,8 masuk zona bahaya. Tidak dipakai untuk bank, REIT,
+      dan utilitas.</dd>
+      <dt>Ret 12-1%</dt><dd>Return 12 bulan sampai sebulan lalu, disesuaikan dividen.</dd>
+      <dt>Tren</dt><dd>✓ = lolos trend template Minervini: harga &gt; MA50 &gt; MA150 &gt; MA200, MA200 naik,
+      ≥ 25% di atas low 52 minggu, ≤ 25% di bawah high 52 minggu.</dd>
+      <dt>Nilai $jt</dt><dd>Nilai transaksi rata-rata 20 hari, juta dolar — ukuran likuiditas.</dd>
+    </dl>
+    <p>Klik judul kolom untuk mengurutkan. Harga diperbarui otomatis tiap malam hari bursa dari penutupan
+    Wall Street (sumber: Yahoo Finance). Laporan keuangan diperbarui tiap Minggu dari SEC EDGAR.</p>
+  </details>
+
+  <footer>
+    Sumber data: Yahoo Finance (harga), SEC EDGAR XBRL (laporan keuangan), Wikipedia (konstituen indeks).
+    Kode dan metodologi: <a href="https://github.com/2013tib-droid/US-MARKET">github.com/2013tib-droid/US-MARKET</a>.
+  </footer>
+</div>
+
+<div class="tirai" id="tirai" hidden></div>
+<aside id="detail" hidden aria-label="Detail emiten"></aside>
+
+<script>
+"use strict";
+
+// Definisi kolom. `angka` = diparse sebagai bilangan; `jenis` menentukan cara
+// tampilnya. Kolom yang tidak ada di CSV (mis. CSV lama sebelum Fase 2)
+// tampil sebagai "–", bukan membuat halaman gagal.
+const KOLOM = [
+  { k: "Ticker",           label: "Ticker",       kiri: true },
+  { k: "Nama",             label: "Nama",         kiri: true },
+  { k: "Sektor",           label: "Sektor",       kiri: true },
+  { k: "Harga",            label: "Harga $",      angka: true, desimal: 2 },
+  { k: "MCap_MiliarUSD",   label: "MCap (miliar $)",      angka: true, desimal: 1 },
+  { k: "Z_Value",          label: "Z Value",      angka: true, jenis: "z" },
+  { k: "Z_Quality",        label: "Z Quality",    angka: true, jenis: "z" },
+  { k: "Z_Momentum",       label: "Z Momentum",   angka: true, jenis: "z" },
+  { k: "Z_LowVol",         label: "Z Low-Vol",    angka: true, jenis: "z" },
+  { k: "RS_Rating",        label: "RS",           angka: true },
+  { k: "F_Score",          label: "F-score",      angka: true, jenis: "fscore" },
+  { k: "Keyakinan",        label: "Keyakinan",    angka: true, jenis: "keyakinan" },
+  { k: "Flag",             label: "Red flag",     kiri: true, jenis: "flag" },
+  { k: "PE_TTM",           label: "P/E",          angka: true, desimal: 1 },
+  { k: "EV_EBITDA",        label: "EV/EBITDA",    angka: true, desimal: 1 },
+  { k: "PB",               label: "P/B",          angka: true, desimal: 2 },
+  { k: "FCF_Yield",        label: "FCF%",         angka: true, desimal: 1 },
+  { k: "DivYield",         label: "Div%",         angka: true, desimal: 2 },
+  { k: "Shareholder_Yield",label: "SH yield%",    angka: true, desimal: 2 },
+  { k: "ROIC",             label: "ROIC%",        angka: true, desimal: 1 },
+  { k: "ROE",              label: "ROE%",         angka: true, desimal: 1 },
+  { k: "GrossMargin",      label: "Margin kotor%", angka: true, desimal: 1 },
+  { k: "Akrual",           label: "Akrual%",      angka: true, desimal: 1 },
+  { k: "NetDebt_EBITDA",   label: "Utang bersih/EBITDA", angka: true, desimal: 2 },
+  { k: "Z_Altman",         label: "Altman Z",     angka: true, desimal: 2 },
+  { k: "Rev_YoY",          label: "Pendapatan YoY%", angka: true, desimal: 1 },
+  { k: "Laba_YoY",         label: "Laba YoY%",    angka: true, desimal: 1 },
+  { k: "Dilusi_YoY",       label: "Saham YoY%",   angka: true, desimal: 1 },
+  { k: "Ret12_1",          label: "Ret 12-1%",    angka: true, desimal: 1 },
+  { k: "Vol1T",            label: "Volatilitas%", angka: true, desimal: 1 },
+  { k: "Beta",             label: "Beta",         angka: true, desimal: 2 },
+  { k: "MaxDD1T",          label: "Drawdown%",    angka: true, desimal: 1 },
+  { k: "RSI14",            label: "RSI",          angka: true, desimal: 0 },
+  { k: "TrendTemplate",    label: "Tren",         jenis: "tren" },
+  { k: "Nilai20H_JutaUSD", label: "Nilai $jt",    angka: true, desimal: 0 },
+  { k: "Periode_Lapkeu",   label: "Lapkeu s.d.",  kiri: true },
+];
+const KOLOM_ANGKA_TAMBAHAN = ["MA50", "MA150", "MA200", "High52", "Low52", "Ret6_1", "Mom_RiskAdj",
+  "EBITDA_EV", "E_P", "Buyback_Yield", "GM_Stabilitas5T", "ROA_Variabilitas5T", "OCF_Laba",
+  "Cakupan_Bunga", "VolSpike", "ATR14", "RS_vs_SPX", "Bar"];
+
+const JANGKAR = ["Ticker", "Nama"];
+const KELOMPOK = {
+  ringkas:  ["Sektor", "Harga", "MCap_MiliarUSD", "Z_Value", "Z_Quality", "Z_Momentum", "Z_LowVol", "F_Score", "Flag"],
+  faktor:   ["Sektor", "Z_Value", "Z_Quality", "Z_Momentum", "Z_LowVol", "RS_Rating", "F_Score", "Keyakinan"],
+  valuasi:  ["Sektor", "Harga", "MCap_MiliarUSD", "PE_TTM", "EV_EBITDA", "PB", "FCF_Yield", "DivYield", "Shareholder_Yield", "Z_Value"],
+  kualitas: ["Sektor", "ROIC", "ROE", "GrossMargin", "Akrual", "NetDebt_EBITDA", "Z_Altman", "F_Score", "Z_Quality", "Flag"],
+  tumbuh:   ["Sektor", "Rev_YoY", "Laba_YoY", "Dilusi_YoY", "Periode_Lapkeu", "Keyakinan"],
+  teknikal: ["Harga", "Ret12_1", "RS_Rating", "Z_Momentum", "Vol1T", "Beta", "MaxDD1T", "RSI14", "TrendTemplate", "Nilai20H_JutaUSD"],
+};
+
+// Sama dengan usmarket/valuasi.py FLAG_BERAT. Diubah di sana, diubah di sini.
+const FLAG_BERAT = new Set(["DISTRES", "RESTATEMENT", "F-RENDAH", "TIPIS", "GAGAL-UNDUH", "SAHAM-JANGGAL"]);
+const ARTI_FLAG = {
+  "TIPIS": "Tidak lolos likuiditas: harga < $5, nilai transaksi < $10 juta/hari, atau market cap < $1 miliar.",
+  "DATA-KURANG": "Histori harga < 1 tahun, atau lebih dari 3 metrik inti laporan keuangan kosong.",
+  "BASI": "Tidak ada transaksi pada sesi terakhir (dihentikan perdagangannya atau menjelang delisting).",
+  "SEKTOR-KECIL": "Pembanding sektor < 5 emiten; z-score diukur terhadap seluruh universe.",
+  "GAGAL-UNDUH": "Yahoo tidak punya data harga ticker ini.",
+  "FILER-ASING": "Laporan tidak dalam US GAAP/USD (IFRS atau mata uang lain); fundamental tidak dihitung.",
+  "LAPKEU-LAMA": "Laporan terakhir lebih dari 270 hari lalu.",
+  "ZONA-BAHAYA": "Altman Z < 1,8. Untuk emiten padat modal (telekomunikasi, pipa migas) ini sering salah alarm; lihat cakupan bunga.",
+  "DISTRES": "Altman Z < 1,8 dan laba operasi tidak sampai 1,5× beban bunga: tekanan keuangan terkonfirmasi.",
+  "GOING-CONCERN": "Kalimat going concern baku auditor ditemukan di laporan setahun terakhir. Baca laporannya — bisa juga kalimat 'keraguan sudah teratasi'.",
+  "RESTATEMENT": "8-K Item 4.02 dalam 400 hari terakhir: laporan keuangan lama dinyatakan tidak bisa diandalkan.",
+  "F-RENDAH": "Piotroski F-score ≤ 3: fundamental memburuk di banyak sisi sekaligus.",
+  "LABA-KERTAS": "Arus kas operasi < 60% laba bersih dua periode berturut-turut.",
+  "DILUSI": "Jumlah saham naik > 5% setahun.",
+  "GOODWILL": "Goodwill > ekuitas (atau ekuitas negatif): neraca hasil akuisisi, rawan impairment.",
+  "SAHAM-JANGGAL": "Jumlah saham tidak konsisten dengan harga; valuasi dikosongkan.",
+  "UTANG-TAK-TERBACA": "Beban bunga material tapi saldo utang tidak terbaca di XBRL; EV dan leverage kosong.",
+};
+
+const state = {
+  tab: "tren", cari: "", sektor: "", indeks: "", saringFlag: "", kelompok: "ringkas",
+  perHal: 25, hal: 1, urut: { kolom: null, naik: false }, gagal: false,
+  data: { tren: null, value: null, quality: null, semua: null },
+  adaFile: { tren: true, value: true, quality: true },
+  kolomAda: new Set(), median: null, meta: null, dipilih: null,
+};
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+const fmtCache = new Map();
+function angka(n, desimal = 0, tanda = false) {
+  if (n === null || n === undefined || n === "" || Number.isNaN(n)) return "–";
+  const kunci = desimal + (tanda ? "t" : "");
+  if (!fmtCache.has(kunci)) fmtCache.set(kunci, new Intl.NumberFormat("id-ID",
+    { minimumFractionDigits: desimal, maximumFractionDigits: desimal, signDisplay: tanda ? "exceptZero" : "auto" }));
+  return fmtCache.get(kunci).format(n);
+}
+function kosong(v) { return v === null || v === undefined || v === "" || Number.isNaN(v); }
+
+const KOLOM_NUMERIK = new Set(KOLOM.filter(k => k.angka).map(k => k.k).concat(KOLOM_ANGKA_TAMBAHAN));
+
+// Parser CSV kecil dengan dukungan tanda kutip (nama emiten bisa memuat koma).
+function parseCSV(teks) {
+  const baris = [];
+  let sel = "", row = [], dalamKutip = false;
+  for (let i = 0; i < teks.length; i++) {
+    const c = teks[i];
+    if (dalamKutip) {
+      if (c === '"' && teks[i + 1] === '"') { sel += '"'; i++; }
+      else if (c === '"') dalamKutip = false;
+      else sel += c;
+    } else if (c === '"') dalamKutip = true;
+    else if (c === ",") { row.push(sel); sel = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && teks[i + 1] === "\n") i++;
+      row.push(sel); sel = "";
+      if (row.length > 1 || row[0] !== "") baris.push(row);
+      row = [];
+    } else sel += c;
+  }
+  if (sel !== "" || row.length) { row.push(sel); baris.push(row); }
+  if (!baris.length) return { header: [], rows: [] };
+  const header = baris[0];
+  const rows = baris.slice(1).map(r => {
+    const obj = {};
+    header.forEach((h, i) => {
+      const mentah = r[i] ?? "";
+      obj[h] = KOLOM_NUMERIK.has(h) ? (mentah === "" ? null : Number(mentah)) : mentah;
+    });
+    return obj;
+  });
+  return { header, rows };
+}
+
+function daftarFlag(r) {
+  return String(r.Flag || "").split(";").map(s => s.trim()).filter(Boolean);
+}
+
+function barisTerlihat() {
+  let hasil = state.data[state.tab] || [];
+  if (state.sektor) hasil = hasil.filter(r => r.Sektor === state.sektor);
+  if (state.indeks) hasil = hasil.filter(r => String(r.Indeks || "").split(";").includes(state.indeks));
+  if (state.saringFlag === "berat") hasil = hasil.filter(r => !daftarFlag(r).some(f => FLAG_BERAT.has(f)));
+  if (state.saringFlag === "bersih") hasil = hasil.filter(r => !daftarFlag(r).length);
+  const q = state.cari.trim().toUpperCase();
+  hasil = !q ? hasil.slice() : hasil.filter(r =>
+    String(r.Ticker || "").toUpperCase().includes(q) || String(r.Nama || "").toUpperCase().includes(q));
+  const { kolom, naik } = state.urut;
+  if (kolom) {
+    const numerik = KOLOM_NUMERIK.has(kolom);
+    hasil.sort((a, b) => {
+      const va = a[kolom], vb = b[kolom];
+      if (kosong(va)) return 1;      // kosong selalu di bawah
+      if (kosong(vb)) return -1;
+      const cmp = numerik ? va - vb : String(va).localeCompare(String(vb));
+      return naik ? cmp : -cmp;
+    });
+  }
+  return hasil;
+}
+
+function kolomTampil() {
+  const daftar = KELOMPOK[state.kelompok];
+  const semua = KOLOM.filter(k => state.kolomAda.size === 0 || state.kolomAda.has(k.k));
+  if (!daftar) return semua;
+  const pilih = new Set(JANGKAR.concat(daftar));
+  return semua.filter(k => pilih.has(k.k));
+}
+
+function sel(k, r, kelas) {
+  const v = r[k.k];
+  if (k.k === "Ticker") return `<td class="ticker ${kelas}">${esc(r.Ticker)}</td>`;
+  if (k.k === "Nama" || k.k === "Sektor") return `<td class="${kelas}"><span class="nama" title="${esc(v)}">${esc(v) || "–"}</span></td>`;
+  if (k.jenis === "flag") {
+    const f = daftarFlag(r);
+    if (!f.length) return `<td class="${kelas}"><span class="redup">–</span></td>`;
+    return `<td class="${kelas}">` + f.map(x =>
+      `<span class="flag${FLAG_BERAT.has(x) ? " berat" : ""}" title="${esc(ARTI_FLAG[x] || "")}">${esc(x)}</span>`).join("") + "</td>";
+  }
+  if (k.jenis === "tren") {
+    const ya = String(v).toLowerCase() === "true";
+    return `<td class="${kelas}">${ya ? '<span class="tt-ya" title="Lolos trend template">✓</span>' : '<span class="redup">–</span>'}</td>`;
+  }
+  if (kosong(v)) return `<td class="${kelas}"><span class="redup">–</span></td>`;
+  if (k.jenis === "z") {
+    const band = v >= 1 ? " z-kuat" : v <= -1 ? " z-lemah" : "";
+    return `<td class="${kelas}"><span class="z${band}">${angka(v, 2, true)}</span></td>`;
+  }
+  if (k.jenis === "fscore") {
+    const band = v >= 7 ? "sk-kuat" : v >= 4 ? "sk-sedang" : "sk-lemah";
+    return `<td class="${kelas}"><span class="skor ${band}">${angka(v)}</span></td>`;
+  }
+  if (k.jenis === "keyakinan") {
+    return `<td class="${kelas}">${v < 70 ? `<span class="skor sk-sedang">${angka(v)}</span>` : angka(v)}</td>`;
+  }
+  if (!k.angka) return `<td class="${kelas}">${esc(v)}</td>`;
+  return `<td class="${kelas}">${angka(v, k.desimal || 0)}</td>`;
+}
+
+function render() {
+  const wadah = document.getElementById("tabel");
+  const info = document.getElementById("hitung");
+  if (state.gagal) {
+    wadah.innerHTML = '<div class="gagal">Gagal memuat data. Coba muat ulang halaman — kalau masih gagal, ' +
+      'cek run terakhir di tab Actions repo.</div>';
+    info.textContent = "";
+    sembunyikanPager();
+    return;
+  }
+  if (!state.data[state.tab]) {
+    wadah.innerHTML = '<div class="kosong">Memuat data …</div>';
+    sembunyikanPager();
+    return;
+  }
+  const rows = barisTerlihat();
+  const total = state.data[state.tab].length;
+  info.textContent = rows.length === total ? `${total} emiten` : `${rows.length} dari ${total} emiten`;
+  if (!rows.length) {
+    const sebab = !state.adaFile[state.tab]
+      ? "Daftar ini belum dibuat oleh run malam — muncul setelah screening berikutnya selesai."
+      : (state.cari || state.sektor || state.indeks || state.saringFlag)
+      ? "Tidak ada yang cocok dengan pencarian / filter."
+      : "Tidak ada saham yang lolos saringan ini malam ini.";
+    wadah.innerHTML = `<div class="kosong">${sebab}</div>`;
+    sembunyikanPager();
+    return;
+  }
+  const halaman = potongHalaman(rows);
+  const kolom = kolomTampil();
+  const th = kolom.map((k, i) => {
+    const aktif = state.urut.kolom === k.k;
+    const arah = aktif ? `<span class="arah">${state.urut.naik ? " ▲" : " ▼"}</span>` : "";
+    const kelas = [k.kiri ? "kiri" : "", i === 0 ? "lengket" : "", aktif ? "terurut" : ""].filter(Boolean).join(" ");
+    return `<th data-kolom="${k.k}" class="${kelas}">${k.label}${arah}</th>`;
+  }).join("");
+  const td = halaman.map(r => {
+    const dipilih = state.dipilih === r.Ticker ? ' class="dipilih"' : "";
+    return `<tr data-ticker="${esc(r.Ticker)}"${dipilih}>` + kolom.map((k, i) =>
+      sel(k, r, [k.kiri ? "kiri" : "", i === 0 ? "lengket" : ""].filter(Boolean).join(" "))).join("") + "</tr>";
+  }).join("");
+  const kelasTabel = kolom.length <= 14 ? ' class="sempit"' : "";
+  wadah.innerHTML = `<table${kelasTabel}><thead><tr>${th}</tr></thead><tbody>${td}</tbody></table>`;
+  wadah.querySelectorAll("th").forEach(el => el.addEventListener("click", () => {
+    const kol = el.dataset.kolom;
+    // Klik pertama: terbesar dulu untuk angka (yang dicari biasanya "paling
+    // tinggi"), A-Z untuk teks.
+    if (state.urut.kolom === kol) state.urut.naik = !state.urut.naik;
+    else state.urut = { kolom: kol, naik: !KOLOM_NUMERIK.has(kol) };
+    state.hal = 1;
+    render();
+  }));
+  wadah.querySelectorAll("tbody tr").forEach(tr => tr.addEventListener("click", () => bukaDetail(tr.dataset.ticker)));
+  perbaruiPager();
+  perbaruiRowPager(rows.length);
+}
+
+// ---- Pagination baris -------------------------------------------------------
+function jumlahHalaman(total) { return state.perHal > 0 ? Math.max(1, Math.ceil(total / state.perHal)) : 1; }
+function potongHalaman(rows) {
+  if (state.perHal <= 0) return rows;
+  state.hal = Math.min(Math.max(1, state.hal), jumlahHalaman(rows.length));
+  const mulai = (state.hal - 1) * state.perHal;
+  return rows.slice(mulai, mulai + state.perHal);
+}
+function nomorHalaman(kini, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const set = new Set([1, total, kini, kini - 1, kini + 1]);
+  if (kini <= 3) [2, 3, 4].forEach(n => set.add(n));
+  if (kini >= total - 2) [total - 1, total - 2, total - 3].forEach(n => set.add(n));
+  const urut = [...set].filter(n => n >= 1 && n <= total).sort((a, b) => a - b);
+  const hasil = [];
+  urut.forEach((n, i) => { if (i && n - urut[i - 1] > 1) hasil.push(0); hasil.push(n); });
+  return hasil;
+}
+function perbaruiRowPager(total) {
+  const bar = document.getElementById("rowpager");
+  const info = document.getElementById("rp-info");
+  const nav = document.getElementById("rp-halaman");
+  bar.hidden = false;
+  const halTotal = jumlahHalaman(total);
+  const mulai = state.perHal > 0 ? (state.hal - 1) * state.perHal + 1 : 1;
+  const akhir = state.perHal > 0 ? Math.min(total, state.hal * state.perHal) : total;
+  info.textContent = `Menampilkan ${mulai}–${akhir} dari ${total} emiten`;
+  if (halTotal <= 1) { nav.innerHTML = ""; return; }
+  const tombol = [`<button type="button" data-hal="${state.hal - 1}" ${state.hal === 1 ? "disabled" : ""} aria-label="Halaman sebelumnya">‹</button>`];
+  nomorHalaman(state.hal, halTotal).forEach(n => {
+    tombol.push(n === 0 ? '<span class="jeda">…</span>'
+      : `<button type="button" data-hal="${n}" class="${n === state.hal ? "aktif" : ""}">${n}</button>`);
+  });
+  tombol.push(`<button type="button" data-hal="${state.hal + 1}" ${state.hal === halTotal ? "disabled" : ""} aria-label="Halaman berikutnya">›</button>`);
+  nav.innerHTML = tombol.join("");
+  nav.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+    const n = Number(b.dataset.hal);
+    if (!n || n === state.hal || n < 1 || n > halTotal) return;
+    state.hal = n;
+    render();
+  }));
+}
+
+// ---- Pagination mendatar ----------------------------------------------------
+function sembunyikanPager() {
+  document.getElementById("pager").hidden = true;
+  document.getElementById("rowpager").hidden = true;
+}
+function perbaruiPager() {
+  const sc = document.getElementById("tabel");
+  const pager = document.getElementById("pager");
+  const dots = document.getElementById("pager-dots");
+  const posisi = document.getElementById("pager-posisi");
+  const lebar = Number(sc.clientWidth) || 0;
+  const isi = Number(sc.scrollWidth) || 0;
+  const sisa = isi - lebar;
+  if (!lebar || sisa < 8) { pager.hidden = true; return; }
+  pager.hidden = false;
+  const halaman = Math.max(2, Math.ceil(isi / lebar));
+  const langkah = sisa / (halaman - 1);
+  const kini = Math.min(halaman - 1, Math.round((Number(sc.scrollLeft) || 0) / langkah));
+  dots.innerHTML = Array.from({ length: halaman }, (_, i) =>
+    `<button type="button" data-hal="${i}" class="${i === kini ? "aktif" : ""}" aria-label="Ke bagian ${i + 1} dari ${halaman}"></button>`).join("");
+  dots.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { sc.scrollLeft = Number(b.dataset.hal) * langkah; }));
+  posisi.textContent = `${kini + 1} / ${halaman}`;
+  document.getElementById("ke-kiri").disabled = sc.scrollLeft <= 1;
+  document.getElementById("ke-kanan").disabled = sc.scrollLeft >= sisa - 1;
+  sc.classList[sc.scrollLeft > 1 ? "add" : "remove"]("tergulir");
+}
+function geser(arah) {
+  const sc = document.getElementById("tabel");
+  sc.scrollLeft = (Number(sc.scrollLeft) || 0) + arah * (Number(sc.clientWidth) || 0) * 0.85;
+}
+
+// ---- Panel detail -----------------------------------------------------------
+// Median per sektor dihitung sekali dari tabel lengkap, dipakai untuk kolom
+// pembanding di panel detail.
+function hitungMedian() {
+  const per = {};
+  (state.data.semua || []).forEach(r => {
+    const s = r.Sektor || "–";
+    (per[s] = per[s] || []).push(r);
+  });
+  const hasil = {};
+  Object.entries(per).forEach(([s, rows]) => {
+    hasil[s] = {};
+    KOLOM_NUMERIK.forEach(k => {
+      const v = rows.map(r => r[k]).filter(x => !kosong(x)).sort((a, b) => a - b);
+      hasil[s][k] = v.length ? (v.length % 2 ? v[(v.length - 1) / 2] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2) : null;
+    });
+  });
+  state.median = hasil;
+}
+
+function batangZ(label, v) {
+  if (kosong(v)) return `<div class="batang"><span>${label}</span><div class="rel"></div><span class="angka redup">–</span></div>`;
+  const lebar = Math.min(3, Math.abs(v)) / 3 * 50;
+  const posisi = v >= 0 ? `left:50%;width:${lebar}%` : `left:${50 - lebar}%;width:${lebar}%`;
+  return `<div class="batang"><span>${label}</span><div class="rel"><div class="isi ${v >= 0 ? "pos" : "neg"}" style="${posisi}"></div></div>` +
+         `<span class="angka">${angka(v, 2, true)}</span></div>`;
+}
+
+function barisBanding(daftar, r, med) {
+  return daftar.map(([label, k, desimal, akhiran = ""]) => {
+    let nilai = r[k], m = med ? med[k] : null;
+    const fmt = x => kosong(x) ? "–" : (k === "Cakupan_Bunga" && Math.abs(x) >= 999)
+      ? (x > 0 ? "tanpa bunga" : "EBIT negatif") : angka(x, desimal) + akhiran;
+    return `<tr><td class="kiri">${label}</td><td>${fmt(nilai)}</td><td class="redup">${fmt(m)}</td></tr>`;
+  }).join("");
+}
+
+function bukaDetail(ticker) {
+  const r = (state.data.semua || []).find(x => x.Ticker === ticker)
+         || (state.data[state.tab] || []).find(x => x.Ticker === ticker);
+  if (!r) return;
+  state.dipilih = ticker;
+  const med = state.median ? state.median[r.Sektor || "–"] : null;
+  const keu = r.Sektor === "Financials";
+  const flags = daftarFlag(r);
+  const valuasi = keu
+    ? [["P/E", "PE_TTM", 1, "x"], ["P/B", "PB", 2, "x"], ["Dividend yield", "DivYield", 2, "%"], ["Shareholder yield", "Shareholder_Yield", 2, "%"]]
+    : [["P/E", "PE_TTM", 1, "x"], ["EV/EBITDA", "EV_EBITDA", 1, "x"], ["P/B", "PB", 2, "x"], ["FCF yield", "FCF_Yield", 1, "%"],
+       ["Dividend yield", "DivYield", 2, "%"], ["Shareholder yield", "Shareholder_Yield", 2, "%"]];
+  const kualitas = keu
+    ? [["ROE", "ROE", 1, "%"], ["Variabilitas ROA 5 th", "ROA_Variabilitas5T", 1, " pp"]]
+    : [["ROIC", "ROIC", 1, "%"], ["ROE", "ROE", 1, "%"], ["Margin kotor", "GrossMargin", 1, "%"],
+       ["Akrual (% aset)", "Akrual", 1, "%"], ["Utang bersih/EBITDA", "NetDebt_EBITDA", 2, "x"],
+       ["Cakupan bunga", "Cakupan_Bunga", 1, "x"], ["Altman Z", "Z_Altman", 2, ""]];
+  const tumbuh = [["Pendapatan YoY", "Rev_YoY", 1, "%"], ["Laba YoY", "Laba_YoY", 1, "%"], ["Saham YoY", "Dilusi_YoY", 1, "%"]];
+  const tt = String(r.TrendTemplate).toLowerCase() === "true";
+  const jarakMA = !kosong(r.MA200) && r.MA200 ? (r.Harga / r.MA200 - 1) * 100 : null;
+  const jarakHigh = !kosong(r.High52) && r.High52 ? (r.Harga / r.High52 - 1) * 100 : null;
+
+  const el = document.getElementById("detail");
+  el.innerHTML = `
+    <button type="button" class="tutup" id="tutup-detail" aria-label="Tutup">✕</button>
+    <h2>${esc(r.Ticker)}<small>${esc(r.Nama)}</small></h2>
+    <div class="sub">${esc(r.Sektor || "–")} · ${esc(r.Industri || "–")} · ${esc(String(r.Indeks || "").replace(/;/g, ", "))}</div>
+    <div class="ringkas-angka">
+      <div><b>$${angka(r.Harga, 2)}</b><span>harga · ${esc(r.Tanggal_Data || "")}</span></div>
+      <div><b>${kosong(r.MCap_MiliarUSD) ? "–" : "$" + angka(r.MCap_MiliarUSD, 1) + " mlr"}</b><span>market cap</span></div>
+      <div><b>${kosong(r.F_Score) ? "–" : angka(r.F_Score) + " / 9"}</b><span>Piotroski F-score</span></div>
+      <div><b>${kosong(r.RS_Rating) ? "–" : angka(r.RS_Rating)}</b><span>RS rating</span></div>
+      <div><b>${tt ? "✓ lolos" : "tidak"}</b><span>trend template</span></div>
+      <div><b>${kosong(r.Keyakinan) ? "–" : angka(r.Keyakinan)}</b><span>keyakinan data</span></div>
+    </div>
+    <h3>Posisi faktor di dalam sektor</h3>
+    ${batangZ("Value", r.Z_Value)}${batangZ("Quality", r.Z_Quality)}${batangZ("Momentum", r.Z_Momentum)}${batangZ("Low-Vol", r.Z_LowVol)}
+    <h3>Valuasi</h3>
+    <table class="banding"><thead><tr><th class="kiri">Metrik</th><th>${esc(r.Ticker)}</th><th>Median sektor</th></tr></thead>
+      <tbody>${barisBanding(valuasi, r, med)}</tbody></table>
+    <h3>Kualitas</h3>
+    <table class="banding"><thead><tr><th class="kiri">Metrik</th><th>${esc(r.Ticker)}</th><th>Median sektor</th></tr></thead>
+      <tbody>${barisBanding(kualitas, r, med)}</tbody></table>
+    <h3>Pertumbuhan · laporan s.d. ${esc(r.Periode_Lapkeu || "–")} (${esc(r.Basis || "–")})</h3>
+    <table class="banding"><thead><tr><th class="kiri">Metrik</th><th>${esc(r.Ticker)}</th><th>Median sektor</th></tr></thead>
+      <tbody>${barisBanding(tumbuh, r, med)}</tbody></table>
+    <h3>Tren</h3>
+    <div class="sub">Harga ${jarakMA === null ? "–" : angka(jarakMA, 1, true) + "%"} dari MA200 ·
+      ${jarakHigh === null ? "–" : angka(jarakHigh, 1, true) + "%"} dari high 52 minggu ·
+      RSI ${angka(r.RSI14)} · return 12-1 bulan ${angka(r.Ret12_1, 1, true)}%</div>
+    <h3>Red flag</h3>
+    ${flags.length ? `<ul class="flag-list">${flags.map(f =>
+      `<li><span class="flag${FLAG_BERAT.has(f) ? " berat" : ""}">${esc(f)}</span> ${esc(ARTI_FLAG[f] || "")}</li>`).join("")}</ul>`
+      : '<div class="sub">Tidak ada.</div>'}
+    <h3>Laporan lengkap</h3>
+    <div class="sub">Laporan Markdown dengan sumber setiap angka (tag XBRL) dan pertanyaan yang tidak bisa dijawab data:</div>
+    <div class="perintah">python analisa.py ${esc(r.Ticker)}</div>
+    <div class="tautan">
+      <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${encodeURIComponent(r.Ticker)}&type=10-&dateb=&owner=include&count=40" target="_blank" rel="noopener">Laporan di SEC EDGAR ↗</a>
+      <a href="https://finance.yahoo.com/quote/${encodeURIComponent(r.Ticker)}" target="_blank" rel="noopener">Yahoo Finance ↗</a>
+    </div>`;
+  el.hidden = false;
+  document.getElementById("tirai").hidden = false;
+  // Alamat #TICKER membuat panel ini bisa dibagikan dan dibuka langsung.
+  if (typeof history !== "undefined" && history.replaceState) history.replaceState(null, "", "#" + ticker);
+  el.scrollTop = 0;
+  document.getElementById("tutup-detail").addEventListener("click", tutupDetail);
+  render();
+}
+function tutupDetail() {
+  document.getElementById("detail").hidden = true;
+  document.getElementById("tirai").hidden = true;
+  state.dipilih = null;
+  if (typeof history !== "undefined" && history.replaceState) history.replaceState(null, "", location.pathname + location.search);
+  render();
+}
+
+// ---- Kendali ----------------------------------------------------------------
+function pilihTab(tab) {
+  state.tab = tab;
+  state.hal = 1;
+  // Tab hasil saringan sudah diurut oleh screener (faktor terkuat dulu);
+  // tab Semua paling enak dibaca dari emiten terbesar.
+  state.urut = tab === "semua" ? { kolom: "MCap_MiliarUSD", naik: false } : { kolom: null, naik: false };
+  document.querySelectorAll(".tabs button").forEach(b => b.classList[b.dataset.tab === tab ? "add" : "remove"]("active"));
+  document.querySelectorAll(".tile").forEach(t => t.classList[t.dataset.tab === tab ? "add" : "remove"]("aktif"));
+  render();
+}
+
+function pasangKendali() {
+  document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => pilihTab(b.dataset.tab)));
+  document.querySelectorAll(".tile").forEach(t => t.addEventListener("click", () => pilihTab(t.dataset.tab)));
+  const ubah = (id, kunci, cast = v => v) => document.getElementById(id).addEventListener(
+    id === "cari" ? "input" : "change", e => { state[kunci] = cast(e.target.value); state.hal = 1; render(); });
+  ubah("cari", "cari");
+  ubah("sektor", "sektor");
+  ubah("indeks", "indeks");
+  ubah("saringflag", "saringFlag");
+  ubah("perhal", "perHal", v => Number(v) || 0);
+  document.getElementById("kelompok").addEventListener("change", e => {
+    state.kelompok = e.target.value;
+    document.getElementById("tabel").scrollLeft = 0;
+    render();
+  });
+  document.getElementById("ke-kiri").addEventListener("click", () => geser(-1));
+  document.getElementById("ke-kanan").addEventListener("click", () => geser(1));
+  document.getElementById("tabel").addEventListener("scroll", perbaruiPager);
+  document.getElementById("tirai").addEventListener("click", tutupDetail);
+  if (typeof addEventListener === "function") {
+    addEventListener("resize", perbaruiPager);
+    addEventListener("keydown", e => { if (e.key === "Escape" && state.dipilih) tutupDetail(); });
+  }
+}
+
+function waktuWIB(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "short",
+    hour: "2-digit", minute: "2-digit" }).format(d) + " WIB";
+}
+function tanggalPanjang(s) {
+  if (!s) return "–";
+  const d = new Date(s + "T12:00:00Z");
+  return new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(d);
+}
+
+function tulisPembaruan() {
+  const m = state.meta;
+  const el = document.getElementById("pembaruan");
+  if (!m) { el.textContent = "Waktu pembaruan tidak diketahui"; return; }
+  const bagian = [`Data penutupan ${tanggalPanjang(m.tanggal_data)}`];
+  const w = waktuWIB(m.diperbarui);
+  if (w) bagian.push(`diperbarui ${w}`);
+  const f = waktuWIB(m.fundamental_diperbarui);
+  if (f) bagian.push(`laporan keuangan ${f}`);
+  el.textContent = bagian.join(" · ");
+  // Lebih dari 4 hari tanpa pembaruan = ada run malam yang terlewat
+  // (akhir pekan panjang paling lama 3 hari).
+  const umur = (Date.now() - new Date(m.diperbarui).getTime()) / 864e5;
+  if (umur > 4) document.getElementById("titik").classList.add("basi");
+}
+
+async function ambilCSV(nama, wajib) {
+  const r = await fetch(`hasil/${nama}.csv?t=${Date.now()}`).catch(() => null);
+  if (!r || !r.ok) {
+    if (wajib) throw new Error(nama);
+    return null;
+  }
+  return parseCSV(await r.text());
+}
+
+async function muat() {
+  pasangKendali();
+  try {
+    const [semua, tren, value, quality, meta] = await Promise.all([
+      ambilCSV("semua", true), ambilCSV("tren", false), ambilCSV("value", false), ambilCSV("quality", false),
+      fetch(`hasil/meta.json?t=${Date.now()}`).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]);
+    state.kolomAda = new Set(semua.header);
+    state.data.semua = semua.rows;
+    for (const [nama, hasil] of [["tren", tren], ["value", value], ["quality", quality]]) {
+      state.adaFile[nama] = !!hasil;
+      state.data[nama] = hasil ? hasil.rows : [];
+    }
+    state.meta = meta;
+    document.getElementById("t-tren").textContent = state.adaFile.tren ? state.data.tren.length : "–";
+    document.getElementById("t-value").textContent = state.adaFile.value ? state.data.value.length : "–";
+    document.getElementById("t-quality").textContent = state.adaFile.quality ? state.data.quality.length : "–";
+    document.getElementById("t-semua").textContent = state.data.semua.length;
+    const sektor = [...new Set(state.data.semua.map(r => r.Sektor).filter(Boolean))].sort();
+    const pilihSektor = document.getElementById("sektor");
+    sektor.forEach(s => {
+      const o = document.createElement("option");
+      o.value = o.textContent = s;
+      pilihSektor.appendChild(o);
+    });
+    hitungMedian();
+    tulisPembaruan();
+  } catch (e) {
+    state.gagal = true;
+  }
+  render();
+  const awal = typeof location !== "undefined" ? decodeURIComponent(location.hash.slice(1)).toUpperCase() : "";
+  if (awal && (state.data.semua || []).some(r => r.Ticker === awal)) bukaDetail(awal);
+}
+
+muat();
+</script>
+</body>
+</html>

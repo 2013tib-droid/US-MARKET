@@ -91,9 +91,12 @@ Durasi: pembaruan fundamental ± 200 detik untuk 1.514 CIK; run malam tetap
 
 1. *companyfacts hanya memuat fakta non-dimensional.* Emiten yang
    melaporkan angka per segmen atau per kelas saham kehilangan angka
-   totalnya: CAT (utang), APA dan MTH (pendapatan), BRK (jumlah saham sejak
-   2015). Ditangani dengan tag cadangan, jadwal jatuh tempo utang, jumlah
-   saham setara dari Yahoo, dan flag `UTANG-TAK-TERBACA`.
+   totalnya: CAT, Ford, dan GM (utang), APA dan MTH (pendapatan), BRK (jumlah saham sejak
+   2015). Ditangani dengan tag cadangan, total utang dari 10-K terakhir (≤ 200
+   hari), jadwal jatuh tempo utang, jumlah
+   saham setara dari Yahoo, dan flag `UTANG-TAK-TERBACA` — yang kini juga
+   menyala bila ada penerbitan atau pelunasan utang material tanpa saldo
+   yang terbaca (Ford), supaya emiten berutang tidak tampil bebas utang.
 2. *Pencarian teks penuh EDGAR tidak menggabungkan beberapa form.* "8-K"
    memberi 106 emiten dengan Item 4.02; "8-K,8-K/A" hanya 5. Setiap form kini
    dicari sendiri.
@@ -163,6 +166,11 @@ harga $0,01), `uji_winrate.py` dengan pembanding SPY / QUAL / MTUM / VLUE,
 **Dibangun**: `dashboard/index.html` (dari IDX + banner rezim + tab),
 `winrate.html`, GitHub Pages, catatan operasional ("Yang perlu sesekali
 dilirik" seperti di README IDX).
+
+**Dimajukan sebagian (15 Sep 2026)**: dashboard, panel detail, GitHub Pages,
+dan uji dashboard sudah jalan bersama Fase 2 atas permintaan pemilik. Yang
+tersisa untuk fase ini: banner rezim, tab Akumulasi/Pantau, `winrate.html`,
+dan catatan operasional.
 
 **Selesai bila**:
 - Dashboard bisa dibuka dari HP, filter jalan, memuat < 3 detik.

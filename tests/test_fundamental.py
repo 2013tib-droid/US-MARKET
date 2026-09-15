@@ -158,3 +158,20 @@ def test_zona_bahaya_bukan_distres_bila_bunga_tertutup():
 def test_bank_tidak_kena_flag_utang():
     r = pd.Series({"Sektor": "Financials", "Tag_Utang": "utang tidak terbaca (bunga material)"})
     assert "UTANG-TAK-TERBACA" not in valuasi.flag_fundamental(r)
+
+
+def test_utang_tahunan_lama_dipakai_sampai_200_hari():
+    cadangan = {"LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities":
+                fu.Seri({(None, date(2025, 12, 31)): 131.6e9}, "x")}
+    v, sumber = fu.utang_total(_ss_kosong(), date(2026, 6, 30), cadangan)
+    assert v == 131.6e9 and sumber.startswith("komponen:") and "2025-12-31" in sumber
+    v, _ = fu.utang_total(_ss_kosong(), date(2026, 12, 31), cadangan)
+    assert v == 0.0  # sudah lebih dari 200 hari: tidak dipakai
+
+
+def test_bukti_aktivitas_utang_membuat_utang_tak_terbaca():
+    fk = {"us-gaap": {"RepaymentsOfLongTermDebt": {"units": {"USD": [
+        {"start": "2026-01-01", "end": "2026-03-31", "val": 15.6e9, "form": "10-Q", "filed": "2026-05-01"}]}}}}
+    assert fu.ada_bukti_utang(fk, date(2026, 3, 31), 290e9)
+    v, sumber = fu.utang_total(_ss_kosong(), date(2026, 3, 31), {}, bukti_lain=True)
+    assert v is None and "penerbitan" in sumber
