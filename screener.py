@@ -36,7 +36,7 @@ SMARTMONEY = AKAR / "data" / "smartmoney.csv"
 
 KOLOM_TAMPIL = ["Sektor", "Harga", "MCap_MiliarUSD", "PE_TTM", "EV_EBITDA", "ROIC", "F_Score",
                 "Z_Value", "Z_Quality", "Z_Momentum", "Z_LowVol", "Z_Growth", "Z_SmartMoney",
-                "RS_Rating", "TrendTemplate", "Keyakinan", "Flag"]
+                "RS_Rating", "TrendTemplate", "Keyakinan", "Skor", "Status", "Flag"]
 
 
 def argumen(argv=None):
@@ -83,6 +83,8 @@ def argumen(argv=None):
                    help="Perubahan kepemilikan institusi minimal (poin persen sejak snapshot lalu)")
     f.add_argument("--min-hari-earnings", type=float,
                    help="Buang emiten yang lapkeu-nya kurang dari N hari bursa lagi")
+    f.add_argument("--min-skor", type=float, help="Skor komposit minimal (0–100, peringkat persentil)")
+    f.add_argument("--status", nargs="+", help="Hanya status tertentu, mis. --status AKUMULASI PANTAU")
     f.add_argument("--tanpa-flag", action="store_true", help="Buang semua baris yang punya flag apa pun")
     f.add_argument("--tanpa-flag-berat", action="store_true",
                    help="Buang baris dengan flag berat: " + ", ".join(sorted(valuasi.FLAG_BERAT)))
@@ -121,7 +123,7 @@ def saring(df: pd.DataFrame, a) -> pd.DataFrame:
              ("min_z_growth", "Z_Growth", ">="), ("min_z_smartmoney", "Z_SmartMoney", ">="),
              ("min_insider_net", "Insider_Net90H_JutaUSD", ">="),
              ("max_short_float", "Short_PctFloat", "<="),
-             ("min_institusi_delta", "Institusi_Delta", ">=")]
+             ("min_institusi_delta", "Institusi_Delta", ">="), ("min_skor", "Skor", ">=")]
     for nama, kolom, op in batas:
         nilai = getattr(a, nama)
         if nilai is not None:
@@ -132,6 +134,8 @@ def saring(df: pd.DataFrame, a) -> pd.DataFrame:
         # Tanggal earnings yang tidak diketahui tidak menggugurkan: yang
         # disaring di sini adalah yang diketahui terlalu dekat.
         m &= ~(df["Hari_Ke_Earnings"].between(0, a.min_hari_earnings))
+    if a.status:
+        m &= df["Status"].isin([s.upper() for s in a.status])
     if a.sektor:
         m &= df["Sektor"].isin(a.sektor)
     if a.indeks:
@@ -168,8 +172,10 @@ def diperbarui(meta: Path) -> str | None:
         return None
 
 
-def tulis_meta(path: Path, hasil: pd.DataFrame, panel: harga.Panel, detik: float):
+def tulis_meta(path: Path, hasil: pd.DataFrame, panel: harga.Panel, detik: float,
+               rezim=None):
     flag = hasil["Flag"].fillna("")
+    status = hasil["Status"] if "Status" in hasil else pd.Series(dtype=object)
     meta = {
         "diperbarui": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "tanggal_data": panel.tutup.index[-1].date().isoformat(),
@@ -181,7 +187,7 @@ def tulis_meta(path: Path, hasil: pd.DataFrame, panel: harga.Panel, detik: float
         "sesi_final_terakhir": kalender.sesi_final_terakhir().isoformat(),
         "tertinggal_sesi": panel.tutup.index[-1].date() < kalender.sesi_final_terakhir(),
         "versi_skema": VERSI_SKEMA,
-        "fase": 3,
+        "fase": 4,
         "jumlah_emiten": int(len(hasil)),
         "gagal_unduh": int(flag.str.contains("GAGAL-UNDUH").sum()),
         "faktor_terisi": int((hasil["Z_Momentum"].notna() & hasil["Z_LowVol"].notna()).sum()),
@@ -192,6 +198,12 @@ def tulis_meta(path: Path, hasil: pd.DataFrame, panel: harga.Panel, detik: float
         "growth_terisi": int(hasil["Z_Growth"].notna().sum()),
         "smartmoney_terisi": int(hasil["Z_SmartMoney"].notna().sum()),
         "cluster_buy": int((hasil["Insider_ClusterBuy"] == True).sum()),  # noqa: E712
+        # Rezim dan sebarannya: banner dashboard membacanya dari sini, dan
+        # perubahan rezim yang tak terduga ketahuan dari riwayat meta.
+        "makro": rezim.ke_dict() if rezim is not None else None,
+        "skor_terisi": int(pd.to_numeric(hasil.get("Skor"), errors="coerce").notna().sum())
+        if "Skor" in hasil else 0,
+        "status": {k: int(v) for k, v in status.value_counts().items()},
         "fundamental_diperbarui": diperbarui(FUNDAMENTAL.with_name("fundamental_meta.json")),
         "smartmoney_diperbarui": diperbarui(SMARTMONEY.with_name("smartmoney_meta.json")),
         "durasi_detik": round(detik, 1),
@@ -206,13 +218,15 @@ def main(argv=None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
     mulai = time.monotonic()
     panel = None
+    rezim = None
 
     if a.dari_csv:
         hasil = pd.read_csv(a.dari_csv, index_col="Ticker")
     else:
         uni = universe_dari_argumen(a)
-        print(f"Mengunduh harga {len(uni)} ticker + {tabel.BENCHMARK} ({a.periode})…", file=sys.stderr)
-        panel = harga.unduh(list(uni.index) + [tabel.BENCHMARK], periode=a.periode)
+        indeks = [tabel.BENCHMARK, tabel.INDEKS_SPX, tabel.INDEKS_VIX]
+        print(f"Mengunduh harga {len(uni)} ticker + {', '.join(indeks)} ({a.periode})…", file=sys.stderr)
+        panel = harga.unduh(list(uni.index) + indeks, periode=a.periode)
         if panel.bar_dibuang:
             print(f"Bar {panel.bar_dibuang} dibuang: sesinya belum tuntas.", file=sys.stderr)
         if panel.bar_ditambal:
@@ -230,6 +244,14 @@ def main(argv=None) -> int:
             print(f"{SMARTMONEY.name} belum ada: kolom smart money & revisi analis kosong. "
                   "Jalankan scripts/perbarui_smartmoney.py.", file=sys.stderr)
         hasil = tabel.bangun(uni, panel, fund, smart)
+        rezim = tabel.hitung_rezim(panel, hasil)
+        if rezim is not None:
+            print(f"Rezim: {rezim.ringkas()}", file=sys.stderr)
+            for baris in rezim.konteks:
+                print(f"  {baris}", file=sys.stderr)
+        else:
+            print(f"{tabel.INDEKS_SPX} tidak terunduh: bobot netral dipakai, "
+                  "kolom Rezim menyebutnya.", file=sys.stderr)
         if len(uni) < 300:
             print(f"PERHATIAN: Z-score dan RS rating dihitung terhadap {len(uni)} ticker ini saja, "
                   "bukan terhadap universe. Untuk peringkat yang bermakna, jalankan run penuh lalu "
@@ -255,7 +277,7 @@ def main(argv=None) -> int:
         hasil.to_csv(output, encoding="utf-8")
         print(f"{len(hasil)} baris disimpan ke {output}", file=sys.stderr)
     if a.meta and panel is not None:
-        tulis_meta(a.meta, penuh, panel, time.monotonic() - mulai)
+        tulis_meta(a.meta, penuh, panel, time.monotonic() - mulai, rezim)
 
     if not a.diam:
         with pd.option_context("display.max_rows", 60, "display.width", 200,

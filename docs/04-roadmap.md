@@ -304,8 +304,12 @@ lagi.
 
 ## Fase 4 — Rezim & skor komposit (± 2 minggu)
 
-**Dibangun**: `makro.py`, `faktor.py` versi lengkap (bobot rezim,
-momentum-crash guard), kolom `Skor`, `Status`, `Alasan`, banner rezim.
+**Dibangun**: `makro.py` (rezim, momentum-crash guard, skor komposit),
+`keputusan.py` (label status & `Alasan`), kolom `Rezim`, `Skor_Faktor`,
+`Skor`, `Status`, `Alasan`, banner rezim di dashboard, saringan `--min-skor`
+dan `--status` di `screener.py`, serta tiga skrip uji:
+`scripts/uji_sensitivitas.py`, `scripts/uji_rezim_historis.py`,
+`scripts/backtest.py`. Versi skema naik ke 4.
 
 **Selesai bila**:
 - Rezim yang dihitung ulang untuk 2008, 2009, 2020, 2022 dengan data
@@ -319,6 +323,78 @@ momentum-crash guard), kolom `Skor`, `Status`, `Alasan`, banner rezim.
 - Tabel sensitivitas: skor komposit dengan bobot ±10 poin per faktor —
   peringkat 20 besar tidak berubah > 30%. Kalau berubah lebih, skornya
   terlalu rapuh.
+
+**Hasil (16 Sep 2026)**: kodenya selesai dan teruji, tapi **fase ini tidak
+lolos**. Satu dari tiga syarat sudah bisa diperiksa dan syarat itu gagal.
+
+| Syarat | Hasil | Status |
+|---|---|---|
+| Rezim 2008/2009/2020/2022 cocok dengan sebutan analis | Belum diperiksa. `scripts/uji_rezim_historis.py` siap pakai; butuh ^GSPC dan ^VIX sejak 2007 dari Yahoo | ⏳ |
+| Backtest 2015–sekarang: return per risiko ≥ SPY | Belum diperiksa. `scripts/backtest.py` siap pakai; butuh harga harian seluruh universe sejak 2014 | ⏳ |
+| Bobot ±10 poin: peringkat 20 besar berubah ≤ 30% | **Terburuk 50%** (Risk-on, Momentum −10). Delapan dari 44 geseran melebihi 30% | ❌ |
+
+### Syarat 3 gagal, dan bobotnya tidak diutak-atik
+
+`python scripts/uji_sensitivitas.py --hanya-lolos` terhadap 1.335 emiten yang
+lolos likuiditas dan bebas flag berat di `hasil/semua.csv` (data 15 Sep):
+
+| Rezim | Geseran terburuk | Berubah | Korelasi peringkat terendah |
+|---|---|---|---|
+| Risk-on | Momentum −10 | **50%** | ρ = 0,963 |
+| Netral | Momentum +10 | **40%** | ρ = 0,954 |
+| Risk-off | Value +10 | **35%** | ρ = 0,952 |
+| Momentum-crash guard | (semua ≤ 30%) | 30% | ρ = 0,945 |
+
+Aturan fase ini melarang menggeser bobot sampai lolos, dan larangan itu
+justru paling berlaku di sini: syarat sensitivitas ada **untuk menangkap
+skor yang hasilnya ditentukan oleh angka bobot**, jadi menyetel bobot agar
+lolos berarti membuang alat ukurnya, bukan memperbaiki yang diukur.
+
+Satu pembelaan yang wajar diuji lebih dulu — dan gugur. Dugaannya: churn 20
+besar cuma efek batas, karena peringkat 20 dan 21 di antara 1.335 emiten
+praktis seri, jadi potongan yang lebih panjang mestinya jauh lebih stabil.
+Ternyata tidak: irisannya ~80% di top-100 juga, hampir sama dengan di top-20.
+Turnover ~20% merata di tiap potongan, bukan riak di perbatasan.
+
+Yang justru terbaca dari angkanya: **korelasi peringkat seluruh universe
+sangat tinggi (ρ = 0,945–0,996) sementara irisan nama teratas rendah.**
+Urutan besar-besaran stabil; yang tidak stabil adalah 10–20 nama yang
+benar-benar akan dibeli. Untuk sistem yang memegang maksimum 12 posisi,
+justru yang kedua yang menentukan hasil.
+
+`Z_SmartMoney` sekali lagi jadi kasus tersendiri: menggesernya ± 10 poin
+hampir tidak mengubah apa pun (ρ = 0,993–0,996, irisan 90–100%). Itu bukan
+kestabilan yang menenangkan — itu temuan 5 Fase 3 muncul lagi dari arah
+lain: faktor yang sebarannya 0,365 memang tidak bisa memindahkan peringkat
+berapa pun bobotnya.
+
+**Tiga pilihan untuk pemilik repo**, dan ini keputusan desain, bukan
+tambalan kode:
+
+1. **Terima dan ubah cara pakainya.** Skor dipakai sebagai penyaring
+   (misalnya "Skor ≥ 70" sebagai daftar kandidat 300-an nama), bukan sebagai
+   peringkat yang 20 besarnya dibeli. Timing Fase 5 yang memilih dari
+   kandidat itu. Ini mengakui apa yang datanya katakan tanpa menyembunyikan.
+2. **Perlebar potongan yang dianggap "hasil".** Kalau yang dipakai 50–100
+   nama teratas, irisannya ~80% dan syaratnya lewat. Tapi syarat aslinya
+   menyebut 20 besar karena itu yang mendekati portofolio nyata, jadi
+   melebarkannya harus ditulis sebagai perubahan syarat, bukan kelulusan.
+3. **Kurangi jumlah faktor.** Enam faktor dengan bobot yang berdekatan
+   membuat peringkat teratas ditentukan oleh selisih kecil. Empat faktor
+   dengan bobot yang berjauhan akan lebih tahan — tapi itu merombak Pilar 1–4,
+   dan tidak boleh diputuskan dari satu tabel sensitivitas.
+
+Sampai salah satunya dipilih, Fase 4 tetap **belum lolos** dan Fase 5 belum
+dimulai. Kolom `Skor` dan `Status` tetap dihitung dan ditampilkan — menahannya
+tidak membuat sistemnya lebih jujur, sedangkan mencatat kerapuhannya di sini
+membuatnya bisa dibaca dengan benar.
+
+**Catatan yang harus ikut ketika syarat 2 dijalankan nanti**: `backtest.py`
+sengaja hanya menguji faktor dari harga (Momentum dan Low-Vol). Quality,
+Value, dan Growth tidak punya deret waktu di repo ini — hanya snapshot
+terakhir — jadi memakainya untuk tanggal 2015 adalah look-ahead. Yang diuji
+karena itu bagian skor yang bisa diuji jujur, bukan seluruh skor, dan
+laporannya harus menyebut itu bersama survivorship bias.
 
 ## Fase 5 — Timing, SMC, uji winrate (± 2 minggu)
 
