@@ -159,33 +159,69 @@ sungguhan. Yang sudah diperiksa tanpa jaringan:
 | Jalur unduh inkremental: nomor akses yang sudah tersimpan tidak diunduh lagi | `tests/test_sec_form4.py` dengan klien EDGAR tiruan |
 | Perakitan `hasil/semua.csv` dari tiga sumber, flag baru, dan dashboard | `tests/test_tabel.py` + `node scripts/uji_dashboard.js` terhadap pipeline penuh dengan harga & smart money buatan (1.521 baris) |
 
-**Yang harus dilihat pertama kali pada run mingguan itu** — tiga hal di
-`perbarui_smartmoney.py` adalah dugaan tentang bentuk API yang tidak bisa
-diuji tanpa jaringan. Semuanya gagal dengan diam (kolom kosong, bukan error),
-jadi periksa `data/smartmoney_meta.json` sebelum percaya angkanya:
+**Tiga dugaan bentuk API sudah terjawab (16 Sep 2026).** Tiga hal di
+`perbarui_smartmoney.py` adalah tebakan tentang bentuk API yang tidak bisa
+diuji tanpa jaringan, dan ketiganya gagal dengan diam. Run mingguan 15 Sep
+sudah menjawabnya; buktinya di `data/smartmoney_meta.json` dan
+`data/insider.csv` yang ikut ter-commit, jadi tidak perlu jaringan untuk
+memeriksanya ulang:
 
-| Dugaan | Gejala kalau dugaannya salah | Kalau salah |
+| Dugaan | Gejala kalau salah | Kenyataannya |
 |---|---|---|
-| `primaryDocument` Form 4 menunjuk versi terjemahan XSL, dan nama berkas di belakangnya adalah XML aslinya | `filing_baru` ribuan tapi `transaksi_baru` nol | Ambil `…-index.json` per filing untuk menemukan nama XML-nya (satu permintaan tambahan per dokumen) |
-| Kotak centang 10b5-1 memakai nama tag yang memuat "10b5" | `Insider_Rencana90H` nol di seluruh universe, padahal penjualan terjadwal lazim | Baca satu Form 4 penjualan besar, cari nama tag sebenarnya, sesuaikan `baca_form4` |
-| Nama medan yfinance (`heldPercentInstitutions`, `targetMeanPrice`, …) dan kolom `Ticker.earnings_dates` | `institusi_terisi`, `target_terisi`, atau `earnings_terisi` nol | Cetak satu `Ticker.info` dan sesuaikan `PETA_YAHOO` |
+| `primaryDocument` Form 4 menunjuk versi terjemahan XSL, dan nama berkas di belakangnya adalah XML aslinya | `filing_baru` ribuan tapi `transaksi_baru` nol | **Benar.** `filing_baru` 16.752 → `transaksi_baru` 33.102, `gagal_dokumen` 0. Tidak perlu `…-index.json` per filing |
+| Kotak centang 10b5-1 memakai nama tag yang memuat "10b5" | `Insider_Rencana90H` nol di seluruh universe, padahal penjualan terjadwal lazim | **Benar.** 12.745 dari 32.541 transaksi bertanda rencana (39%), 446 emiten punya ≥ 1. CRWV 785, ALAB 128 — persis pola penjualan terjadwal yang diharapkan |
+| Nama medan yfinance (`heldPercentInstitutions`, `targetMeanPrice`, …) dan kolom `Ticker.earnings_dates` | `institusi_terisi`, `target_terisi`, atau `earnings_terisi` nol | **Benar, tapi cakupannya bocor** — lihat di bawah. Institusi 1.143, short 1.136, target 1.132, earnings 509 |
 
-Setelah itu jalankan `python scripts/verifikasi_smartmoney.py --jumlah 10` —
-ia mencetak angka kita bersebelahan dengan versi Yahoo, ditambah tautan
-OpenInsider, Form 4 asli di EDGAR, dan short interest FINRA untuk ketiga
-syarat di atas — lalu isi tabel hasilnya di sini:
+Yang tidak terduga justru muncul di dugaan ketiga: `Catatan_SM` berisi
+`yahoo gagal: YFRateLimitError` untuk **375 dari 1.521 emiten** — seperempat
+universe hilang bukan karena nama medannya salah, melainkan karena Yahoo
+membatasi laju dan kode lama menyerah pada percobaan pertama. Itu bukan
+kerugian kosmetik: `Institusi_Delta` yang ikut kosong justru punya bobot 0,4
+di `Z_SmartMoney`. Sejak 16 Sep, galat sementara (batas laju, timeout,
+koneksi putus) diulang sampai tiga kali dengan jeda menaik dan pekerja yang
+dikurangi separuh tiap putaran, sedangkan galat permanen (simbol delisting)
+tetap langsung menyerah. Jumlah yang akhirnya gagal kini dicatat sebagai
+`yahoo_gagal` di meta — angka itu yang membedakan "Yahoo memang tidak punya
+datanya" dari "kita ditolak".
+
+`Earnings_Berikut` 509 (33% universe, 44% dari yang tidak kena batas laju)
+adalah sifat sumbernya, bukan kerusakan: `Ticker.earnings_dates` hanya memuat
+jadwal yang sudah dikonfirmasi emitennya. Konsekuensinya flag `EARNINGS-DEKAT`
+hanya menyala untuk sepertiga universe; ketiadaannya tidak boleh dibaca
+sebagai "tidak ada lapkeu dekat".
+
+### Syarat "selesai" Fase 3
+
+`python scripts/verifikasi_smartmoney.py` kini dua lapis. Lapis pertama tidak
+butuh jaringan sama sekali dan keluar dengan kode ≠ 0 kalau gagal; lapis kedua
+(`--jumlah 10`) membandingkan dengan Yahoo dan mencetak tautan OpenInsider,
+EDGAR, dan FINRA untuk dibaca manusia.
 
 | Syarat | Hasil | Status |
 |---|---|---|
-| Insider net 90 hari cocok dengan OpenInsider, 10 emiten | — | ⏳ |
-| Cluster buy terdeteksi pada minimal satu kasus nyata | — | ⏳ |
-| Short % float ± 1 poin dari FINRA | — | ⏳ |
+| Insider net 90 hari cocok dengan OpenInsider, 10 emiten | Belum. Yang sudah: seluruh agregat di `smartmoney.csv` dihitung ulang dari `insider.csv` dan cocok untuk 1.022 emiten bertransaksi, selisih maks 5,7e-14 (pembulatan float). Itu membuktikan jejak auditnya utuh — setiap angka bisa dilacak ke nomor akses EDGAR — tapi **bukan** pembanding independen | ⏳ |
+| Cluster buy terdeteksi pada minimal satu kasus nyata | **Ya.** 44 emiten, semuanya lolos pemeriksaan ulang ≥ 2 pelapor berbeda. Kasus paling jelas: GME 8–10 Sep (Cohen $20,4 jt + tiga direktur), PFE 5–12 Agu (Bourla + dua direktur), BSX 31 Jul–3 Agu (Mahoney + dua direktur). AMR membuktikan aturan "bukan satu pelapor dua kali" jalan: Courtis membeli sendirian sejak 12 Jun tanpa memicu apa pun, dan tanda baru menyala 21 Agu ketika Gorzynski ikut. Sumbernya Form 4 asli, nomor aksesnya dicetak — tapi belum diklik silang ke EDGAR oleh manusia | ✅ dengan catatan |
+| Short % float ± 1 poin dari FINRA | Belum. Yang sudah: 1.136 nilai semuanya di dalam 0–100% (median 6,38%, maks 49,48%), jadi tidak ada yang mustahil. Pembanding FINRA butuh jaringan | ⏳ |
+
+Kedua syarat yang masih ⏳ menuntut sumber luar (OpenInsider, FINRA) dan
+tidak bisa dikerjakan dari sesi tanpa akses keluar; jalankan
+`python scripts/verifikasi_smartmoney.py --jumlah 10` dari mesin biasa, lalu
+isi kolomnya di sini.
+
+**Satu temuan sampingan dari lapis pertama**: `Institusi_Pct` > 100% untuk 468
+dari 1.143 emiten yang terisi (maks NTST 160%). Bukan salah baca — Yahoo
+membagi kepemilikan institusi dengan *float*, bukan saham beredar, jadi emiten
+yang punya pemegang pengendali bisa lewat 100%. Yang masuk skor adalah
+deltanya, dan basis itu sama di kedua snapshot, jadi angkanya dibiarkan; tapi
+kolom mentahnya tidak boleh dibaca sebagai "persen saham beredar".
 
 Dua kolom baru sengaja masih kosong sampai datanya terkumpul, dan itu bukan
 kerusakan: `Rev_CAGR3`/`EPS_CAGR3` terisi setelah `perbarui_fundamental.py`
-jalan sekali lagi (kolomnya baru ada di kode, belum di `data/fundamental.csv`
-yang sekarang), dan `Target_Revisi` setelah `data/target_riwayat.csv`
-mencapai tiga bulan (± 13 run mingguan).
+jalan sekali lagi (per 16 Sep masih 0 dari 1.521 di `data/fundamental.csv` —
+kolomnya sudah ada di kode dan di kepala berkas, isinya belum), dan
+`Target_Revisi` setelah `data/target_riwayat.csv` mencapai tiga bulan. Riwayat
+itu kini berisi satu snapshot (15 Sep, 1.132 emiten), jadi ± 12 run mingguan
+lagi.
 
 **Temuan yang mengubah rancangan**:
 
@@ -219,6 +255,16 @@ mencapai tiga bulan (± 13 run mingguan).
    angka bobotnya. Fase 4 harus memutuskan itu secara sadar.
 6. *`PE_Fwd` ditambahkan sebagai kolom, tidak masuk `Z_Value`.* Alasannya di
    [03 §4](03-rancang-bangun.md#4-kolom-hasilsemuacsv).
+7. *Batas laju Yahoo harus diulang, bukan dicatat lalu dilupakan.* Kode awal
+   menganggap kegagalan satu emiten sebagai kerugian yang bisa diterima
+   ("kehilangan 20 dari 1.500 baris tidak merusak peringkat"). Run sungguhan
+   15 Sep kehilangan 375 — asumsinya meleset 19 kali lipat, karena batas laju
+   mengenai satu gelombang emiten sekaligus, bukan satu-satu secara acak.
+   Kegagalan sementara kini diulang; yang permanen tetap tidak, supaya emiten
+   delisting tidak membuang waktu tiga kali. Pelajarannya lebih umum:
+   "kegagalan sebagian yang dicatat di kolom catatan" hanya aman kalau
+   jumlahnya ikut dipantau di meta — kalau tidak, ia gagal dengan diam persis
+   seperti dugaan API yang salah.
 
 ## Fase 4 — Rezim & skor komposit (± 2 minggu)
 
