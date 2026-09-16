@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from usmarket import sec
+from usmarket import sec, smartmoney
 
 AKAR = Path(__file__).resolve().parent.parent
 
@@ -131,3 +131,90 @@ def test_jadwal_earnings_surprise_dan_tanggal_berikutnya():
     assert r["Surprise_Rata4Q"] == pytest.approx(0.835)
     assert r["Surprise_Tanggal"] == "2026-06-01"
     assert r["Earnings_Berikut"] == "2026-11-01"
+
+
+# --- pengulangan Yahoo ------------------------------------------------------
+
+class GalatLaju(Exception):
+    """Meniru yfinance.exceptions.YFRateLimitError, yang tidak diimpor di sini
+    supaya ujinya tidak ikut berubah kalau nama kelasnya berubah."""
+
+
+def test_layak_diulang_membedakan_galat_sementara_dari_yang_permanen():
+    assert perbarui.layak_diulang(GalatLaju("rate limited"))
+    assert perbarui.layak_diulang(TimeoutError("read timeout"))
+    assert not perbarui.layak_diulang(KeyError("delisted"))
+    assert not perbarui.layak_diulang(ValueError("JSON rusak"))
+
+
+def test_dari_yahoo_mengulang_galat_sementara_dan_menyerah_pada_yang_permanen(monkeypatch):
+    """Run 15 Sep 2026 kehilangan 375 emiten karena pembatasan laju Yahoo.
+    Yang gagal sementara harus dicoba lagi; yang gagal permanen tidak."""
+    percobaan = {}
+
+    class TickerPalsu:
+        def __init__(self, t):
+            self.t = t
+            percobaan[t] = percobaan.get(t, 0) + 1
+
+        @property
+        def info(self):
+            if self.t == "SEKALI_GAGAL" and percobaan[self.t] == 1:
+                raise GalatLaju("Too Many Requests")
+            if self.t == "SELALU_GAGAL":
+                raise KeyError("delisted")
+            return {"heldPercentInstitutions": 0.5, "targetMeanPrice": 10.0}
+
+        @property
+        def earnings_dates(self):
+            return None
+
+    monkeypatch.setitem(sys.modules, "yfinance", type("m", (), {"Ticker": TickerPalsu}))
+    tabel = perbarui.dari_yahoo(["OK", "SEKALI_GAGAL", "SELALU_GAGAL"], pekerja=1,
+                                tidur=lambda _: None)
+
+    # Yang sempat kena batas laju akhirnya terisi, dan persen Yahoo (pecahan)
+    # sudah dikali 100.
+    assert tabel.loc["SEKALI_GAGAL", "Institusi_Pct"] == 50.0
+    assert percobaan["SEKALI_GAGAL"] == 2
+    # Yang permanen tidak diulang sama sekali, dan alasannya tercatat.
+    assert percobaan["SELALU_GAGAL"] == 1
+    assert tabel.loc["SELALU_GAGAL", "Catatan_SM"] == "yahoo gagal: KeyError"
+    assert tabel.loc["OK", "Target_Rata"] == 10.0
+
+
+# --- lapis verifikasi tanpa jaringan ----------------------------------------
+
+verifikasi = modul_skrip("verifikasi_smartmoney")
+
+
+def _transaksi(ticker, tanggal, pemilik_cik, nilai, kode="P", rencana=False):
+    return {"Ticker": ticker, "CIK": 1, "Akses": "0001-26-000001", "Tanggal": tanggal,
+            "Tanggal_Lapor": tanggal, "Kode": kode, "Lembar": 100.0, "Harga": nilai / 100,
+            "Nilai": nilai, "Arah": "A", "Pemilik": f"Orang {pemilik_cik}",
+            "Pemilik_CIK": pemilik_cik, "Jabatan": "Direktur", "Peran": "director",
+            "Rencana10b5": rencana}
+
+
+def test_rekonsiliasi_menangkap_agregat_yang_tidak_cocok(capsys):
+    insider = pd.DataFrame([_transaksi("AAA", "2026-09-01", 11, 1_000_000.0),
+                            _transaksi("AAA", "2026-09-05", 22, 2_000_000.0)])
+    ringkas = smartmoney.ringkas_insider(insider, hari_ini=date(2026, 9, 15))
+
+    assert verifikasi.rekonsiliasi(ringkas, insider, date(2026, 9, 15))
+
+    rusak = ringkas.copy()
+    rusak.loc["AAA", "Insider_Net90H_JutaUSD"] = 99.0
+    assert not verifikasi.rekonsiliasi(rusak, insider, date(2026, 9, 15))
+    assert "BEDA di 1 emiten" in capsys.readouterr().out
+
+
+def test_bukti_cluster_menolak_tanda_yang_tidak_didukung_transaksinya(capsys):
+    # Satu pelapor yang membeli dua kali bukan cluster; kalau kolomnya
+    # terlanjur bertanda True, pemeriksaan ini yang harus menangkapnya.
+    insider = pd.DataFrame([_transaksi("BBB", "2026-09-01", 11, 1_000_000.0),
+                            _transaksi("BBB", "2026-09-05", 11, 2_000_000.0)])
+    sm = pd.DataFrame({"Insider_ClusterBuy": [True], "Insider_ClusterTgl": ["2026-09-05"],
+                       "Insider_Beli90H_JutaUSD": [3.0]}, index=pd.Index(["BBB"], name="Ticker"))
+    assert not verifikasi.bukti_cluster(sm, insider)
+    assert "['BBB']" in capsys.readouterr().out

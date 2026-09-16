@@ -74,6 +74,16 @@ PETA_YAHOO = {
 # Dua kolom Yahoo di atas adalah pecahan (0,0234 = 2,34%); disimpan sebagai persen.
 PECAHAN_YAHOO = ["Institusi_Pct", "Short_PctFloat"]
 
+# Pembatasan laju Yahoo bukan "emiten ini tidak punya datanya", melainkan
+# "coba lagi nanti" — dan pada run 15 Sep 2026 ia menelan 375 dari 1.521
+# emiten sekaligus, seperempat universe. Karena itu galat yang namanya
+# mengandung salah satu kata ini diulang dengan jeda menaik, sedangkan galat
+# lain (simbol delisting, JSON rusak) langsung menyerah: mengulangnya hanya
+# membuang waktu.
+GALAT_ULANGI = ("ratelimit", "toomanyrequests", "timeout", "connection", "chunked")
+ULANG_YAHOO = 3
+JEDA_ULANG_DETIK = 5.0
+
 KOLOM_KELUARAN = [
     "CIK",
     "Insider_Beli90H_JutaUSD", "Insider_Jual90H_JutaUSD", "Insider_Net90H_JutaUSD",
@@ -165,13 +175,26 @@ def unduh_form4(klien: sec.KlienSEC, cik_ticker: dict[int, list[str]], sudah: se
 
 # --- yfinance -------------------------------------------------------------
 
-def dari_yahoo(tickers: list[str], pekerja: int = 8) -> pd.DataFrame:
+def layak_diulang(e: BaseException) -> bool:
+    """Galat sementara (pembatasan laju, jaringan putus) — bukan "emiten ini
+    memang tidak ada datanya"."""
+    # Tanda baca dan spasi dibuang dulu supaya nama kelas dan kalimat galat
+    # dicocokkan dengan kata kunci yang sama: "YFRateLimitError", "rate
+    # limited", dan "Too Many Requests" semuanya harus kena.
+    teks = "".join(c for c in f"{type(e).__name__} {e}".lower() if c.isalnum())
+    return any(k in teks for k in GALAT_ULANGI)
+
+
+def dari_yahoo(tickers: list[str], pekerja: int = 8, ulang: int = ULANG_YAHOO,
+               jeda: float = JEDA_ULANG_DETIK, tidur=time.sleep) -> pd.DataFrame:
     """Institusi, short interest, target analis, dan earnings surprise.
 
     Satu `Ticker.info` per emiten, plus riwayat earnings untuk surprise dan
     tanggal lapkeu berikutnya. Kegagalan satu emiten dicatat di kolom
-    Catatan_SM dan tidak menghentikan yang lain: Yahoo rutin membatasi laju
-    dan kehilangan 20 dari 1.500 baris tidak merusak peringkat.
+    Catatan_SM dan tidak menghentikan yang lain — tapi galat sementara
+    diulang dulu sampai `ulang` kali dengan jeda menaik, karena kehilangan
+    seperempat universe pada satu run (15 Sep 2026) mengosongkan
+    `Institusi_Delta` yang justru masuk skor.
     """
     import yfinance as yf
 
@@ -194,17 +217,37 @@ def dari_yahoo(tickers: list[str], pekerja: int = 8) -> pd.DataFrame:
             r.update(dari_jadwal_earnings(jadwal))
         return r
 
+    def kumpulkan(daftar: list[str], hasil: dict[str, dict]) -> list[str]:
+        """Isi `hasil` untuk yang berhasil; kembalikan yang layak dicoba lagi."""
+        lagi: list[str] = []
+        with ThreadPoolExecutor(max_workers=pekerja) as ex:
+            tugas = {ex.submit(satu, t): t for t in daftar}
+            for n, f in enumerate(as_completed(tugas), 1):
+                t = tugas[f]
+                try:
+                    hasil[t] = f.result()
+                except Exception as e:
+                    hasil[t] = {"Catatan_SM": f"yahoo gagal: {type(e).__name__}"}
+                    if layak_diulang(e):
+                        lagi.append(t)
+                if n % 250 == 0:
+                    print(f"  yahoo {n}/{len(daftar)}", file=sys.stderr)
+        return lagi
+
     hasil: dict[str, dict] = {}
-    with ThreadPoolExecutor(max_workers=pekerja) as ex:
-        tugas = {ex.submit(satu, t): t for t in tickers}
-        for n, f in enumerate(as_completed(tugas), 1):
-            t = tugas[f]
-            try:
-                hasil[t] = f.result()
-            except Exception as e:
-                hasil[t] = {"Catatan_SM": f"yahoo gagal: {type(e).__name__}"}
-            if n % 250 == 0:
-                print(f"  yahoo {n}/{len(tickers)}", file=sys.stderr)
+    sisa = kumpulkan(list(tickers), hasil)
+    for percobaan in range(1, ulang + 1):
+        if not sisa:
+            break
+        # Jeda menaik, dan lebih sedikit pekerja: kalau Yahoo membatasi laju,
+        # mengulang dengan kecepatan yang sama hanya dibatasi lagi.
+        tunggu = jeda * 2 ** (percobaan - 1)
+        print(f"  {len(sisa)} emiten kena galat sementara; ulangi ke-{percobaan} "
+              f"setelah {tunggu:.0f} detik", file=sys.stderr)
+        tidur(tunggu)
+        pekerja = max(1, pekerja // 2)
+        sisa = kumpulkan(sisa, hasil)
+
     tabel = pd.DataFrame.from_dict(hasil, orient="index")
     tabel.index.name = "Ticker"
     return tabel
@@ -336,6 +379,10 @@ def main(argv=None) -> int:
         "target_terisi": int(pd.to_numeric(tabel["Target_Rata"], errors="coerce").notna().sum()),
         "target_revisi_terisi": int(pd.to_numeric(tabel["Target_Revisi"], errors="coerce").notna().sum()),
         "earnings_terisi": int(tabel["Earnings_Berikut"].notna().sum()),
+        # Emiten yang gagal diambil dari Yahoo setelah semua pengulangan.
+        # Angka ini yang membedakan "kolom kosong karena Yahoo memang tidak
+        # punya" dari "kosong karena kita ditolak".
+        "yahoo_gagal": int(tabel["Catatan_SM"].astype(str).str.startswith("yahoo gagal").sum()),
         "durasi_detik": round(time.monotonic() - mulai, 1),
     }
     print(json.dumps(meta, indent=2, ensure_ascii=False), file=sys.stderr)
