@@ -45,7 +45,20 @@ dan **Low-Vol** (keduanya hanya butuh harga), `screener.py` versi minimum,
 | ≥ 1.400 emiten dalam ≤ 10 menit di Actions | 1.521 emiten; unduh + hitung 192 detik, seluruh job < 4 menit | ✅ |
 | Momentum & Low-Vol terisi ≥ 95% | 1.509 / 1.521 = 99,2%. Sebelas emiten baru IPO/spin-off < 1 tahun berlabel `DATA-KURANG`; satu (CWEN-A) tidak dimuat Yahoo, berlabel `GAGAL-UNDUH` | ✅ |
 | Run saat pasar buka = run pagi | Logikanya diuji unit test dengan jam buatan, termasuk tutup setengah hari 28 Nov 2025. Diuji dengan data sungguhan 14 Sep 2026 pukul 20:55 UTC — setelah bel, sebelum jeda final 60 menit: Yahoo sudah mengirim bar 14 Sep, sistem membuangnya dan tabel tetap bertanggal 11 Sep. Run 21:05 UTC memakainya. Run di tengah sesi sungguhan belum pernah dilakukan, tapi jalur kodenya sama | ✅ |
-| 3 malam berturut-turut otomatis | Malam 1 (data 14 Sep): jalan dan sukses, tapi terlambat 2 jam 20 menit dari jadwal karena antrean cron GitHub. Malam 2 dan 3 menyusul | ⏳ 1/3 |
+| 3 malam berturut-turut otomatis | Dua malam sukses tanpa tangan, keduanya terlambat ± 2 jam (lihat di bawah). Malam 3 jatuh 16 Sep 22:17 UTC | ⏳ 2/3 |
+
+Rincian malam otomatis, dari daftar run `screening-malam.yml` bertrigger
+`schedule` (jadwal 22:17 UTC, Senin–Jumat):
+
+| Malam | Dijadwalkan | Mulai | Telat | Hasil |
+|---|---|---|---|---|
+| 1 (data 14 Sep) | 14 Sep 22:17 | 15 Sep 00:37 | 2j 20m | sukses |
+| 2 (data 15 Sep) | 15 Sep 22:17 | 16 Sep 00:18 | 2j 01m | sukses |
+
+Telat ± 2 jam muncul di **kedua** malam, jadi itu sifat tetap antrean cron
+GitHub, bukan insiden sekali. Tidak merusak apa pun — jadwal 22:17 UTC sudah
+≥ 1 jam setelah bel tutup, dan tabelnya tetap memakai penutupan sesi yang
+benar — tapi jangan diperlakukan sebagai anomali kalau terulang lagi.
 
 Universe nyatanya ± 1.520, bukan 1.550: 87 dari 102 emiten Nasdaq-100
 juga anggota S&P 500.
@@ -246,13 +259,36 @@ lagi.
 4. *`Target_Upside` tidak masuk skor.* Jarak harga ke target konsensus naik
    ketika harganya jatuh; target analis bergerak lambat mengikuti harga.
    Yang masuk `Z_Growth` adalah arah revisinya. Upside tetap ditampilkan.
-5. *Sebaran `Z_SmartMoney` lebih sempit dari faktor lain* (simpangan ± 0,7
-   pada uji pipeline, bukan 1,0), karena sebagian besar emiten memang tidak
-   punya transaksi orang dalam dan komponennya bernilai netral 0. Ini
-   dibiarkan — memaksa simpangannya jadi 1 akan membesarkan perbedaan antar
-   emiten yang sama-sama tidak memberi sinyal. Konsekuensinya: pada bobot
-   yang sama, faktor ini menyumbang lebih sedikit ke skor komposit daripada
-   angka bobotnya. Fase 4 harus memutuskan itu secara sadar.
+5. *Sebaran `Z_SmartMoney` jauh lebih sempit dari faktor lain* — dan lebih
+   sempit dari yang diperkirakan uji pipeline. Angka ± 0,7 yang tercatat di
+   sini semula berasal dari data buatan; pada run malam sungguhan
+   (`hasil/semua.csv`, data 15 Sep 2026) simpangannya **0,365**, sekitar
+   sepertiga faktor lain:
+
+   | Faktor | Terisi | Simpangan | p10 … p90 |
+   |---|---|---|---|
+   | `Z_Momentum` | 1.509 | 0,994 | −1,27 … 1,26 |
+   | `Z_LowVol` | 1.509 | 0,985 | −1,43 … 1,07 |
+   | `Z_Quality` | 1.448 | 0,964 | −1,06 … 1,23 |
+   | `Z_Value` | 1.502 | 0,946 | −0,98 … 1,09 |
+   | `Z_Growth` | 1.324 | 0,910 | −0,86 … 1,04 |
+   | `Z_SmartMoney` | 1.521 | **0,365** | **−0,01 … 0,15** |
+
+   Simpangan pun masih terlalu ramah sebagai ringkasan: rentang p10–p90
+   `Z_SmartMoney` cuma selebar 0,16, artinya **80% universe praktis bernilai
+   sama**, dan simpangan 0,365 itu datang dari segelintir pencilan. Sebabnya
+   sama seperti dugaan semula — sebagian besar emiten memang tidak punya
+   transaksi orang dalam, komponennya netral 0 — tapi akibatnya lebih tajam:
+   pada bobot nominal yang sama, faktor ini hampir tidak membedakan emiten
+   satu dari yang lain.
+
+   Tetap dibiarkan apa adanya sampai Fase 4: memaksa simpangannya jadi 1 akan
+   membesar-besarkan perbedaan antar emiten yang sama-sama tidak memberi
+   sinyal, dan itu keputusan desain, bukan tambalan. Yang harus Fase 4
+   putuskan secara sadar: memberi faktor ini bobot nominal yang jauh lebih
+   besar, atau menormalkannya hanya di antara emiten yang punya transaksi,
+   atau menerima bahwa ia berfungsi sebagai penyaring pencilan dan bukan
+   faktor peringkat.
 6. *`PE_Fwd` ditambahkan sebagai kolom, tidak masuk `Z_Value`.* Alasannya di
    [03 §4](03-rancang-bangun.md#4-kolom-hasilsemuacsv).
 7. *Batas laju Yahoo harus diulang, bukan dicatat lalu dilupakan.* Kode awal
