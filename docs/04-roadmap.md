@@ -21,7 +21,7 @@ dicatat sebagai revisi dokumen, bukan diskusi ulang.
 | Universe | S&P 1500 + Nasdaq-100 + watchlist, ≈ 1.550 emiten |
 | Broker | Tidak dibahas; di luar cakupan sistem |
 
-## Fase 1 — Universe, harga, dua faktor pertama (± 2 minggu)
+## Fase 1 — Universe, harga, dua faktor pertama ✅
 
 Tujuan: pipeline ujung ke ujung jalan dengan data yang paling mudah (harga),
 supaya kerangkanya terbukti sebelum bagian yang sulit (SEC) dikerjakan.
@@ -45,7 +45,7 @@ dan **Low-Vol** (keduanya hanya butuh harga), `screener.py` versi minimum,
 | ≥ 1.400 emiten dalam ≤ 10 menit di Actions | 1.521 emiten; unduh + hitung 192 detik, seluruh job < 4 menit | ✅ |
 | Momentum & Low-Vol terisi ≥ 95% | 1.509 / 1.521 = 99,2%. Sebelas emiten baru IPO/spin-off < 1 tahun berlabel `DATA-KURANG`; satu (CWEN-A) tidak dimuat Yahoo, berlabel `GAGAL-UNDUH` | ✅ |
 | Run saat pasar buka = run pagi | Logikanya diuji unit test dengan jam buatan, termasuk tutup setengah hari 28 Nov 2025. Diuji dengan data sungguhan 14 Sep 2026 pukul 20:55 UTC — setelah bel, sebelum jeda final 60 menit: Yahoo sudah mengirim bar 14 Sep, sistem membuangnya dan tabel tetap bertanggal 11 Sep. Run 21:05 UTC memakainya. Run di tengah sesi sungguhan belum pernah dilakukan, tapi jalur kodenya sama | ✅ |
-| 3 malam berturut-turut otomatis | Dua malam sukses tanpa tangan, keduanya terlambat ± 2 jam (lihat di bawah). Malam 3 jatuh 16 Sep 22:17 UTC | ⏳ 2/3 |
+| 3 malam berturut-turut otomatis | Tiga malam sukses tanpa tangan, ketiganya terlambat ± 2 jam (lihat di bawah) | ✅ |
 
 Rincian malam otomatis, dari daftar run `screening-malam.yml` bertrigger
 `schedule` (jadwal 22:17 UTC, Senin–Jumat):
@@ -54,11 +54,16 @@ Rincian malam otomatis, dari daftar run `screening-malam.yml` bertrigger
 |---|---|---|---|---|
 | 1 (data 14 Sep) | 14 Sep 22:17 | 15 Sep 00:37 | 2j 20m | sukses |
 | 2 (data 15 Sep) | 15 Sep 22:17 | 16 Sep 00:18 | 2j 01m | sukses |
+| 3 (data 16 Sep) | 16 Sep 22:17 | 17 Sep 00:31 | 2j 14m | sukses |
 
-Telat ± 2 jam muncul di **kedua** malam, jadi itu sifat tetap antrean cron
-GitHub, bukan insiden sekali. Tidak merusak apa pun — jadwal 22:17 UTC sudah
-≥ 1 jam setelah bel tutup, dan tabelnya tetap memakai penutupan sesi yang
-benar — tapi jangan diperlakukan sebagai anomali kalau terulang lagi.
+**Fase 1 lolos seluruh syaratnya pada 17 Sep 2026.**
+
+Telat 2j 01m–2j 20m muncul di **ketiga** malam, jadi itu sifat tetap antrean
+cron GitHub, bukan insiden sekali. Tidak merusak apa pun — jadwal 22:17 UTC
+sudah ≥ 1 jam setelah bel tutup, dan tabelnya tetap memakai penutupan sesi
+yang benar — tapi jangan diperlakukan sebagai anomali kalau terulang lagi.
+Kalau suatu saat jadwalnya digeser lebih dekat ke bel tutup, ingat bahwa
+keterlambatan segitu adalah normalnya, bukan kasus terburuk.
 
 Universe nyatanya ± 1.520, bukan 1.550: 87 dari 102 emiten Nasdaq-100
 juga anggota S&P 500.
