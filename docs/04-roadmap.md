@@ -423,8 +423,13 @@ dilirik" seperti di README IDX).
 **Dimajukan sebagian (15 Sep 2026)**: dashboard, panel detail, GitHub Pages,
 dan uji dashboard sudah jalan bersama Fase 2 atas permintaan pemilik; tab
 Smart money, kelompok kolomnya, dan pewarnaan `Hari ke lapkeu` menyusul
-bersama Fase 3. Yang tersisa untuk fase ini: banner rezim, tab
-Akumulasi/Pantau, `winrate.html`, dan catatan operasional.
+bersama Fase 3. **Banner rezim ikut terbangun bersama Fase 4** (16 Sep),
+karena ia membaca blok `makro` yang baru ada di sana. Yang tersisa untuk fase
+ini: tab Akumulasi/Pantau, `winrate.html`, dan catatan operasional.
+
+Syarat kedua fase ini — sebulan penuh run otomatis — sudah berjalan
+sendirinya sejak malam pertama 14 Sep; tiga malam pertama tercatat di tabel
+Fase 1. Itu syarat yang ditunggu, bukan dikerjakan.
 
 **Selesai bila**:
 - Dashboard bisa dibuka dari HP, filter jalan, memuat < 3 detik.
