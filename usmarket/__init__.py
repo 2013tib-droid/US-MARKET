@@ -6,7 +6,8 @@ bertambah, supaya dashboard dan uji winrate bisa menolak CSV yang tidak
 mereka pahami alih-alih salah membacanya diam-diam.
 """
 
-VERSI_SKEMA = 3  # 2: kolom fundamental (Fase 2); 3: smart money & Growth (Fase 3)
+VERSI_SKEMA = 4  # 2: fundamental (Fase 2); 3: smart money & Growth (Fase 3);
+#                  4: Rezim, Skor, Status, Alasan (Fase 4)
 
 import sys as _sys
 
