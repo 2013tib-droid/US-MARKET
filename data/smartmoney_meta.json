@@ -1,28 +1,32 @@
 {
-  "diperbarui": "2026-09-15T08:25:38Z",
+  "diperbarui": "2026-09-20T01:24:56Z",
   "versi_skema": 3,
   "jumlah_ticker": 1521,
   "jendela_insider_hari": 90,
   "form4": {
-    "filing_baru": 16752,
-    "transaksi_baru": 33102,
+    "filing_baru": 3633,
+    "transaksi_baru": 2353,
     "gagal_daftar_cik": 0,
     "gagal_dokumen": 0
   },
-  "transaksi_disimpan": 32541,
-  "emiten_ada_transaksi_90h": 813,
+  "transaksi_disimpan": 34811,
+  "emiten_ada_transaksi_90h": 816,
   "cluster_buy": [
+    "AAON",
     "ACI",
+    "ADC",
     "AHCO",
     "AMH",
     "AMR",
     "APTV",
     "BSX",
+    "CAVA",
     "CBU",
     "CC",
     "CE",
-    "COR",
-    "CSR",
+    "CELH",
+    "COO",
+    "CROX",
     "DFH",
     "DKS",
     "DTM",
@@ -31,7 +35,6 @@
     "ELV",
     "ENOV",
     "FFIN",
-    "FISV",
     "GME",
     "GO",
     "GSHD",
@@ -40,6 +43,7 @@
     "KMPR",
     "KMT",
     "KMX",
+    "KRMN",
     "MATW",
     "MGY",
     "MRP",
@@ -51,6 +55,7 @@
     "SHEN",
     "SPG",
     "TNC",
+    "TPL",
     "TSCO",
     "TTMI",
     "UBER",
@@ -76,15 +81,15 @@
     ],
     [
       "AAT",
-      18.98
+      20.06
     ],
     [
       "ENR",
-      15.67
+      14.32
     ],
     [
       "UBER",
-      15.31
+      13.31
     ],
     [
       "AMR",
@@ -101,20 +106,24 @@
   ],
   "insider_jual_terbesar": [
     [
+      "FANG",
+      -3749.64
+    ],
+    [
       "LTH",
       -1094.96
     ],
     [
-      "NVDA",
-      -832.48
+      "DELL",
+      -1010.71
     ],
     [
-      "DELL",
-      -688.18
+      "NVDA",
+      -646.48
     ],
     [
       "CRWV",
-      -518.73
+      -524.3
     ],
     [
       "CRBG",
@@ -130,21 +139,18 @@
     ],
     [
       "PBF",
-      -392.63
+      -404.72
     ],
     [
-      "FA",
-      -275.19
-    ],
-    [
-      "OPLN",
-      -274.38
+      "LFST",
+      -377.79
     ]
   ],
-  "institusi_terisi": 1143,
-  "short_terisi": 1136,
-  "target_terisi": 1132,
+  "institusi_terisi": 1174,
+  "short_terisi": 1166,
+  "target_terisi": 1162,
   "target_revisi_terisi": 0,
-  "earnings_terisi": 509,
-  "durasi_detik": 2471.6
+  "earnings_terisi": 1169,
+  "yahoo_gagal": 345,
+  "durasi_detik": 888.2
 }
