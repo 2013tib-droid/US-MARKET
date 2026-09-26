@@ -8,6 +8,7 @@ ADC,Agree Realty,Real Estate,Retail REITs
 AEIS,Advanced Energy,Information Technology,Semiconductor Materials & Equipment
 AFG,American Financial Group,Financials,Multi-line Insurance
 AGCO,AGCO,Industrials,Agricultural & Farm Machinery
+AGNC,AGNC Investment,Financials,Mortgage REITs
 AHR,American Healthcare REIT,Real Estate,Health Care REITs
 AIT,Applied Industrial Technologies,Industrials,Trading Companies & Distributors
 ALGM,Allegro MicroSystems,Information Technology,Semiconductors
@@ -85,7 +86,7 @@ CNX,CNX Resources,Energy,Oil & Gas Exploration & Production
 COKE,Coca-Cola Consolidated,Consumer Staples,Soft Drinks & Non-alcoholic Beverages
 COLB,Columbia Banking System,Financials,Regional Banks
 COLM,Columbia Sportswear,Consumer Discretionary,"Apparel, Accessories & Luxury Goods"
-CPRI,Capri Holdings,Consumer Discretionary,"Apparel, Accessories & Luxury Goods"
+CORT,Corcept Therapeutics,Health Care,Biotechnology
 CR,Crane,Industrials,Industrial Machinery & Supplies & Components
 CRBG,Corebridge Financial,Financials,Asset Management & Custody Banks
 CROX,Crocs,Consumer Discretionary,Footwear
@@ -112,6 +113,7 @@ DT,Dynatrace,Information Technology,Application Software
 DTM,DT Midstream,Energy,Oil & Gas Storage & Transportation
 DUOL,Duolingo,Consumer Discretionary,Education Services
 DY,Dycom Industries,Industrials,Construction & Engineering
+EAT,Brinker International,Consumer Discretionary,Restaurants
 EEFT,Euronet Worldwide,Financials,Transaction & Payment Processing Services
 EGP,EastGroup Properties,Real Estate,Industrial REITs
 EHC,Encompass Health,Health Care,Health Care Facilities
@@ -176,13 +178,13 @@ HOMB,Home BancShares,Financials,Regional Banks
 HQY,HealthEquity,Health Care,Managed Health Care
 HR,Healthcare Realty Trust,Real Estate,Health Care REITs
 HRB,H&R Block,Consumer Discretionary,Specialized Consumer Services
+HUBS,HubSpot,Information Technology,Application Software
 HWC,Hancock Whitney,Financials,Regional Banks
 HXL,Hexcel,Industrials,Aerospace & Defense
 IBOC,Intl Bancshares Corp,Financials,Regional Banks
 IDA,Idacorp,Utilities,Electric Utilities
 IDCC,InterDigital,Information Technology,Communications Equipment
 IESC,IES Holdings,Industrials,Construction & Engineering
-ILMN,"Illumina, Inc.",Health Care,Life Sciences Tools & Services
 INGR,Ingredion,Consumer Staples,Agricultural Products & Services
 IPGP,IPG Photonics,Information Technology,Electronic Manufacturing Services
 IRT,Independence Realty Trust,Real Estate,Multi-Family Residential REITs
@@ -265,7 +267,6 @@ ORI,Old Republic International,Financials,Property & Casualty Insurance
 OSK,Oshkosh,Industrials,Construction Machinery & Heavy Transportation Equipment
 OVV,Ovintiv,Energy,Oil & Gas Exploration & Production
 OZK,Bank OZK,Financials,Regional Banks
-P,Everpure,Information Technology,"Technology Hardware, Storage & Peripherals"
 PAG,Penske Automotive Group,Consumer Discretionary,Automotive Retail
 PATH,UiPath,Information Technology,Systems Software
 PB,Prosperity Bancshares,Financials,Regional Banks
@@ -308,7 +309,6 @@ RYAN,Ryan Specialty,Financials,Insurance Brokers
 RYN,Rayonier,Real Estate,Timber REITs
 SAIA,Saia,Industrials,Cargo Ground Transportation
 SAIC,Science Applications Intl Corp,Industrials,Diversified Support Services
-SAM,Boston Beer Company,Consumer Staples,Brewers
 SANM,Sanmina Corporation,Information Technology,Electronic Manufacturing Services
 SARO,StandardAero,Industrials,Aerospace & Defense
 SBRA,Sabra Health Care REIT,Real Estate,Health Care REITs
