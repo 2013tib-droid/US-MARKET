@@ -1,16 +1,16 @@
 {
-  "diperbarui": "2026-09-20T01:10:07Z",
+  "diperbarui": "2026-09-27T01:28:49Z",
   "versi_skema": 3,
-  "jumlah_ticker": 1521,
-  "jumlah_cik": 1513,
-  "nonkeuangan": 1263,
+  "jumlah_ticker": 1519,
+  "jumlah_cik": 1511,
+  "nonkeuangan": 1260,
   "inti_terisi_nonkeuangan": {
-    "Pendapatan": 1239,
-    "Laba": 1249,
-    "OCF": 1243,
-    "Aset": 1248,
-    "Ekuitas": 1248,
-    "Saham": 1249
+    "Pendapatan": 1236,
+    "Laba": 1246,
+    "OCF": 1240,
+    "Aset": 1245,
+    "Ekuitas": 1245,
+    "Saham": 1246
   },
   "going_concern": [
     "ECHO"
@@ -33,5 +33,5 @@
     "SPCX",
     "VGNT"
   ],
-  "durasi_detik": 209.1
+  "durasi_detik": 207.7
 }
