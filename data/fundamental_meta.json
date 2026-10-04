@@ -1,5 +1,5 @@
 {
-  "diperbarui": "2026-09-27T01:28:49Z",
+  "diperbarui": "2026-10-04T02:39:56Z",
   "versi_skema": 3,
   "jumlah_ticker": 1519,
   "jumlah_cik": 1511,
@@ -8,7 +8,7 @@
     "Pendapatan": 1236,
     "Laba": 1246,
     "OCF": 1240,
-    "Aset": 1245,
+    "Aset": 1244,
     "Ekuitas": 1245,
     "Saham": 1246
   },
@@ -33,5 +33,5 @@
     "SPCX",
     "VGNT"
   ],
-  "durasi_detik": 207.7
+  "durasi_detik": 197.5
 }

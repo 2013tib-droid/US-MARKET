@@ -1,16 +1,16 @@
 {
-  "diperbarui": "2026-09-27T01:41:47Z",
+  "diperbarui": "2026-10-04T02:54:32Z",
   "versi_skema": 3,
   "jumlah_ticker": 1519,
   "jendela_insider_hari": 90,
   "form4": {
-    "filing_baru": 3168,
-    "transaksi_baru": 1323,
+    "filing_baru": 3900,
+    "transaksi_baru": 1784,
     "gagal_daftar_cik": 0,
     "gagal_dokumen": 0
   },
-  "transaksi_disimpan": 36051,
-  "emiten_ada_transaksi_90h": 813,
+  "transaksi_disimpan": 37763,
+  "emiten_ada_transaksi_90h": 820,
   "cluster_buy": [
     "AAON",
     "ACI",
@@ -35,6 +35,7 @@
     "ELV",
     "ENOV",
     "FFIN",
+    "FUL",
     "GME",
     "GO",
     "GSHD",
@@ -73,15 +74,15 @@
     ],
     [
       "LEN",
-      136.38
+      190.27
     ],
     [
       "GPI",
-      89.46
+      187.26
     ],
     [
       "GME",
-      48.34
+      76.4
     ],
     [
       "AAT",
@@ -123,7 +124,7 @@
     ],
     [
       "CRWV",
-      -524.3
+      -541.9
     ],
     [
       "CRBG",
@@ -138,19 +139,19 @@
       -421.03
     ],
     [
-      "PBF",
-      -387.53
-    ],
-    [
       "LFST",
       -377.79
+    ],
+    [
+      "PBF",
+      -338.66
     ]
   ],
-  "institusi_terisi": 1024,
-  "short_terisi": 1016,
-  "target_terisi": 1013,
+  "institusi_terisi": 1048,
+  "short_terisi": 1040,
+  "target_terisi": 1037,
   "target_revisi_terisi": 0,
-  "earnings_terisi": 496,
-  "yahoo_gagal": 493,
-  "durasi_detik": 777.8
+  "earnings_terisi": 491,
+  "yahoo_gagal": 469,
+  "durasi_detik": 875.2
 }
