@@ -94,6 +94,7 @@ CRS,Carpenter Technology,Industrials,Industrial Machinery & Supplies & Component
 CRUS,Cirrus Logic,Information Technology,Semiconductors
 CSL,Carlisle Companies,Industrials,Industrial Conglomerates
 CTRE,CareTrust REIT,Real Estate,Health Care REITs
+CTVA,Corteva,Materials,Fertilizers & Agricultural Chemicals
 CUBE,CubeSmart,Real Estate,Industrial REITs
 CUZ,Cousins Properties,Real Estate,Office REITs
 CVLT,CommVault Systems,Information Technology,Systems Software
@@ -148,6 +149,7 @@ FN,Fabrinet,Information Technology,Electronic Manufacturing Services
 FNB,FNB Corporation,Financials,Regional Banks
 FND,Floor & Decor,Consumer Discretionary,Home Improvement Retail
 FNF,Fidelity National Financial,Financials,Property & Casualty Insurance
+FORM,"FormFactor, Inc.",Information Technology,Semiconductor Materials & Equipment
 FOUR,Shift4,Financials,Transaction & Payment Processing Services
 FR,First Industrial Realty Trust,Real Estate,Industrial REITs
 FTI,TechnipFMC,Energy,Oil & Gas Equipment & Services
@@ -258,7 +260,6 @@ OHI,Omega Healthcare Investors,Real Estate,Health Care REITs
 OKTA,"Okta, Inc.",Information Technology,Application Software
 OLED,Universal Display,Information Technology,Semiconductors
 OLLI,Ollie's Bargain Outlet,Consumer Discretionary,Broadline Retail
-OLN,Olin Corporation,Materials,Diversified Chemicals
 ONB,Old National Bank,Financials,Regional Banks
 ONTO,Onto Innovation,Information Technology,Semiconductor Materials & Equipment
 OPCH,Option Care Health,Health Care,Health Care Facilities
@@ -356,7 +357,6 @@ TRU,TransUnion,Industrials,Research & Consulting Services
 TTC,Toro,Industrials,Agricultural & Farm Machinery
 TTEK,Tetra Tech,Industrials,Construction & Engineering
 TTMI,TTM Technologies,Information Technology,Electronic Manufacturing Services
-TWLO,Twilio,Information Technology,Systems Software
 TXNM,TXNM Energy,Utilities,Electric Utilities
 TXRH,Texas Roadhouse,Consumer Discretionary,Restaurants
 UBSI,United Bankshares,Financials,Regional Banks
