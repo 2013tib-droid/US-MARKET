@@ -1,16 +1,16 @@
 {
-  "diperbarui": "2026-10-11T02:08:36Z",
+  "diperbarui": "2026-10-18T01:17:45Z",
   "versi_skema": 3,
   "jumlah_ticker": 1518,
   "jendela_insider_hari": 90,
   "form4": {
-    "filing_baru": 3488,
-    "transaksi_baru": 2023,
+    "filing_baru": 3183,
+    "transaksi_baru": 1469,
     "gagal_daftar_cik": 0,
     "gagal_dokumen": 0
   },
-  "transaksi_disimpan": 39714,
-  "emiten_ada_transaksi_90h": 822,
+  "transaksi_disimpan": 41101,
+  "emiten_ada_transaksi_90h": 814,
   "cluster_buy": [
     "AAON",
     "ACI",
@@ -32,7 +32,6 @@
     "DTM",
     "DY",
     "ELAN",
-    "ELV",
     "ENOV",
     "FFIN",
     "FUL",
@@ -69,10 +68,6 @@
       1380.32
     ],
     [
-      "JEF",
-      642.75
-    ],
-    [
       "LEN",
       382.9
     ],
@@ -82,11 +77,15 @@
     ],
     [
       "GME",
-      76.23
+      99.0
     ],
     [
       "AAT",
       20.06
+    ],
+    [
+      "PEP",
+      17.5
     ],
     [
       "UBER",
@@ -97,12 +96,12 @@
       12.64
     ],
     [
-      "ENR",
-      10.6
-    ],
-    [
       "INTC",
       10.0
+    ],
+    [
+      "BSX",
+      9.49
     ]
   ],
   "insider_jual_terbesar": [
@@ -116,7 +115,7 @@
     ],
     [
       "DELL",
-      -952.83
+      -1023.76
     ],
     [
       "NVDA",
@@ -140,18 +139,18 @@
     ],
     [
       "PBF",
-      -307.44
+      -322.41
     ],
     [
       "FA",
       -275.19
     ]
   ],
-  "institusi_terisi": 1023,
-  "short_terisi": 1017,
-  "target_terisi": 1013,
+  "institusi_terisi": 991,
+  "short_terisi": 985,
+  "target_terisi": 981,
   "target_revisi_terisi": 0,
-  "earnings_terisi": 1019,
-  "yahoo_gagal": 493,
-  "durasi_detik": 850.7
+  "earnings_terisi": 479,
+  "yahoo_gagal": 525,
+  "durasi_detik": 825.3
 }
