@@ -1,16 +1,16 @@
 {
-  "diperbarui": "2026-10-18T01:17:45Z",
+  "diperbarui": "2026-10-25T01:24:55Z",
   "versi_skema": 3,
   "jumlah_ticker": 1518,
   "jendela_insider_hari": 90,
   "form4": {
-    "filing_baru": 3183,
-    "transaksi_baru": 1469,
+    "filing_baru": 3030,
+    "transaksi_baru": 1196,
     "gagal_daftar_cik": 0,
     "gagal_dokumen": 0
   },
-  "transaksi_disimpan": 41101,
-  "emiten_ada_transaksi_90h": 814,
+  "transaksi_disimpan": 42220,
+  "emiten_ada_transaksi_90h": 813,
   "cluster_buy": [
     "AAON",
     "ACI",
@@ -33,7 +33,6 @@
     "DY",
     "ELAN",
     "ENOV",
-    "FFIN",
     "FUL",
     "GME",
     "GO",
@@ -85,7 +84,7 @@
     ],
     [
       "PEP",
-      17.5
+      13.45
     ],
     [
       "UBER",
@@ -139,18 +138,18 @@
     ],
     [
       "PBF",
-      -322.41
+      -307.66
     ],
     [
-      "FA",
-      -275.19
+      "TALO",
+      -282.93
     ]
   ],
-  "institusi_terisi": 991,
-  "short_terisi": 985,
-  "target_terisi": 981,
+  "institusi_terisi": 1041,
+  "short_terisi": 1035,
+  "target_terisi": 1031,
   "target_revisi_terisi": 0,
-  "earnings_terisi": 479,
-  "yahoo_gagal": 525,
-  "durasi_detik": 825.3
+  "earnings_terisi": 661,
+  "yahoo_gagal": 475,
+  "durasi_detik": 805.6
 }
