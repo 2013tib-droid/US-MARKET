@@ -1,9 +1,9 @@
 {
-  "diperbarui": "2026-10-27T01:32:56Z",
-  "tanggal_data": "2026-10-26",
+  "diperbarui": "2026-10-28T01:22:57Z",
+  "tanggal_data": "2026-10-27",
   "bar_dibuang_belum_final": null,
-  "bar_ditambal_dari_data_per_jam": "2026-10-26: 1504 ticker",
-  "sesi_final_terakhir": "2026-10-26",
+  "bar_ditambal_dari_data_per_jam": "2026-10-27: 1512 ticker",
+  "sesi_final_terakhir": "2026-10-27",
   "tertinggal_sesi": false,
   "versi_skema": 3,
   "fase": 3,
@@ -11,7 +11,7 @@
   "gagal_unduh": 1,
   "faktor_terisi": 1503,
   "lolos_likuiditas": 1431,
-  "lolos_trend_template": 316,
+  "lolos_trend_template": 313,
   "value_terisi": 1495,
   "quality_terisi": 1441,
   "growth_terisi": 1347,
@@ -19,5 +19,5 @@
   "cluster_buy": 48,
   "fundamental_diperbarui": "2026-10-25T01:11:29Z",
   "smartmoney_diperbarui": "2026-10-25T01:24:55Z",
-  "durasi_detik": 254.6
+  "durasi_detik": 183.2
 }
