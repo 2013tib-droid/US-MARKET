@@ -1,24 +1,25 @@
 {
-  "diperbarui": "2026-10-25T01:24:55Z",
+  "diperbarui": "2026-11-01T02:29:41Z",
   "versi_skema": 3,
   "jumlah_ticker": 1518,
   "jendela_insider_hari": 90,
   "form4": {
-    "filing_baru": 3030,
-    "transaksi_baru": 1196,
+    "filing_baru": 3051,
+    "transaksi_baru": 1280,
     "gagal_daftar_cik": 0,
     "gagal_dokumen": 0
   },
-  "transaksi_disimpan": 42220,
-  "emiten_ada_transaksi_90h": 813,
+  "transaksi_disimpan": 43419,
+  "emiten_ada_transaksi_90h": 811,
   "cluster_buy": [
     "AAON",
-    "ACI",
+    "ACN",
     "ADC",
     "AHCO",
     "AMH",
     "AMR",
     "APTV",
+    "BBT",
     "BSX",
     "CAVA",
     "CBU",
@@ -33,10 +34,11 @@
     "DY",
     "ELAN",
     "ENOV",
+    "FFIN",
     "FUL",
     "GME",
     "GO",
-    "GSHD",
+    "HBAN",
     "HOG",
     "HWKN",
     "KMPR",
@@ -45,21 +47,22 @@
     "MATW",
     "MGY",
     "MRP",
+    "MSM",
     "MTDR",
     "PFE",
     "PNFP",
     "RBA",
     "REZI",
     "SEZL",
-    "SHEN",
     "SPG",
+    "STC",
+    "THRM",
     "TNC",
     "TPL",
     "TSCO",
     "TTMI",
     "UBER",
-    "UMBF",
-    "VFC"
+    "UMBF"
   ],
   "insider_beli_terbesar": [
     [
@@ -72,11 +75,15 @@
     ],
     [
       "GPI",
-      187.26
+      210.84
     ],
     [
       "GME",
       99.0
+    ],
+    [
+      "MSM",
+      29.03
     ],
     [
       "AAT",
@@ -84,7 +91,7 @@
     ],
     [
       "PEP",
-      13.45
+      13.85
     ],
     [
       "UBER",
@@ -95,12 +102,8 @@
       12.64
     ],
     [
-      "INTC",
-      10.0
-    ],
-    [
-      "BSX",
-      9.49
+      "LRN",
+      12.24
     ]
   ],
   "insider_jual_terbesar": [
@@ -110,7 +113,7 @@
     ],
     [
       "LTH",
-      -1094.96
+      -1048.68
     ],
     [
       "DELL",
@@ -122,7 +125,7 @@
     ],
     [
       "CRWV",
-      -541.9
+      -541.88
     ],
     [
       "CRBG",
@@ -137,19 +140,19 @@
       -377.79
     ],
     [
-      "PBF",
-      -307.66
+      "TALO",
+      -356.45
     ],
     [
-      "TALO",
-      -282.93
+      "FA",
+      -275.19
     ]
   ],
-  "institusi_terisi": 1041,
-  "short_terisi": 1035,
-  "target_terisi": 1031,
-  "target_revisi_terisi": 0,
-  "earnings_terisi": 661,
-  "yahoo_gagal": 475,
-  "durasi_detik": 805.6
+  "institusi_terisi": 1001,
+  "short_terisi": 996,
+  "target_terisi": 992,
+  "target_revisi_terisi": 988,
+  "earnings_terisi": 498,
+  "yahoo_gagal": 514,
+  "durasi_detik": 827.5
 }

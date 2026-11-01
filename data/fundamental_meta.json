@@ -1,11 +1,11 @@
 {
-  "diperbarui": "2026-10-25T01:11:29Z",
+  "diperbarui": "2026-11-01T02:15:53Z",
   "versi_skema": 3,
   "jumlah_ticker": 1518,
   "jumlah_cik": 1508,
   "nonkeuangan": 1259,
   "inti_terisi_nonkeuangan": {
-    "Pendapatan": 1232,
+    "Pendapatan": 1231,
     "Laba": 1242,
     "OCF": 1236,
     "Aset": 1240,
@@ -13,7 +13,8 @@
     "Saham": 1242
   },
   "going_concern": [
-    "ECHO"
+    "ECHO",
+    "GLPI"
   ],
   "restatement": [
     "AVAV",
@@ -33,5 +34,5 @@
     "SPCX",
     "VGNT"
   ],
-  "durasi_detik": 199.2
+  "durasi_detik": 199.4
 }
