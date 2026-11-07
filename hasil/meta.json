@@ -1,9 +1,9 @@
 {
-  "diperbarui": "2026-11-06T02:28:10Z",
-  "tanggal_data": "2026-11-05",
+  "diperbarui": "2026-11-07T01:57:09Z",
+  "tanggal_data": "2026-11-06",
   "bar_dibuang_belum_final": null,
   "bar_ditambal_dari_data_per_jam": null,
-  "sesi_final_terakhir": "2026-11-05",
+  "sesi_final_terakhir": "2026-11-06",
   "tertinggal_sesi": false,
   "versi_skema": 3,
   "fase": 3,
@@ -19,5 +19,5 @@
   "cluster_buy": 51,
   "fundamental_diperbarui": "2026-11-01T02:15:53Z",
   "smartmoney_diperbarui": "2026-11-01T02:29:41Z",
-  "durasi_detik": 196.9
+  "durasi_detik": 126.4
 }
