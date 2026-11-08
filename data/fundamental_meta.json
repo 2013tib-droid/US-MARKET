@@ -1,20 +1,21 @@
 {
-  "diperbarui": "2026-11-01T02:15:53Z",
+  "diperbarui": "2026-11-08T02:29:46Z",
   "versi_skema": 3,
-  "jumlah_ticker": 1518,
-  "jumlah_cik": 1508,
-  "nonkeuangan": 1259,
+  "jumlah_ticker": 1517,
+  "jumlah_cik": 1506,
+  "nonkeuangan": 1258,
   "inti_terisi_nonkeuangan": {
-    "Pendapatan": 1231,
-    "Laba": 1242,
-    "OCF": 1236,
-    "Aset": 1240,
-    "Ekuitas": 1241,
-    "Saham": 1242
+    "Pendapatan": 1230,
+    "Laba": 1241,
+    "OCF": 1234,
+    "Aset": 1239,
+    "Ekuitas": 1240,
+    "Saham": 1241
   },
   "going_concern": [
     "ECHO",
-    "GLPI"
+    "GLPI",
+    "HOG"
   ],
   "restatement": [
     "AVAV",
@@ -30,9 +31,10 @@
     "HONA",
     "MBGL",
     "MFP",
+    "NAVI",
     "SKT",
     "SPCX",
     "VGNT"
   ],
-  "durasi_detik": 199.4
+  "durasi_detik": 202.4
 }
