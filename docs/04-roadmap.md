@@ -21,7 +21,7 @@ dicatat sebagai revisi dokumen, bukan diskusi ulang.
 | Universe | S&P 1500 + Nasdaq-100 + watchlist, ≈ 1.550 emiten |
 | Broker | Tidak dibahas; di luar cakupan sistem |
 
-## Fase 1 — Universe, harga, dua faktor pertama (± 2 minggu)
+## Fase 1 — Universe, harga, dua faktor pertama ✅
 
 Tujuan: pipeline ujung ke ujung jalan dengan data yang paling mudah (harga),
 supaya kerangkanya terbukti sebelum bagian yang sulit (SEC) dikerjakan.
@@ -45,7 +45,7 @@ dan **Low-Vol** (keduanya hanya butuh harga), `screener.py` versi minimum,
 | ≥ 1.400 emiten dalam ≤ 10 menit di Actions | 1.521 emiten; unduh + hitung 192 detik, seluruh job < 4 menit | ✅ |
 | Momentum & Low-Vol terisi ≥ 95% | 1.509 / 1.521 = 99,2%. Sebelas emiten baru IPO/spin-off < 1 tahun berlabel `DATA-KURANG`; satu (CWEN-A) tidak dimuat Yahoo, berlabel `GAGAL-UNDUH` | ✅ |
 | Run saat pasar buka = run pagi | Logikanya diuji unit test dengan jam buatan, termasuk tutup setengah hari 28 Nov 2025. Diuji dengan data sungguhan 14 Sep 2026 pukul 20:55 UTC — setelah bel, sebelum jeda final 60 menit: Yahoo sudah mengirim bar 14 Sep, sistem membuangnya dan tabel tetap bertanggal 11 Sep. Run 21:05 UTC memakainya. Run di tengah sesi sungguhan belum pernah dilakukan, tapi jalur kodenya sama | ✅ |
-| 3 malam berturut-turut otomatis | Dua malam sukses tanpa tangan, keduanya terlambat ± 2 jam (lihat di bawah). Malam 3 jatuh 16 Sep 22:17 UTC | ⏳ 2/3 |
+| 3 malam berturut-turut otomatis | Tiga malam sukses tanpa tangan, ketiganya terlambat ± 2 jam (lihat di bawah) | ✅ |
 
 Rincian malam otomatis, dari daftar run `screening-malam.yml` bertrigger
 `schedule` (jadwal 22:17 UTC, Senin–Jumat):
@@ -54,11 +54,16 @@ Rincian malam otomatis, dari daftar run `screening-malam.yml` bertrigger
 |---|---|---|---|---|
 | 1 (data 14 Sep) | 14 Sep 22:17 | 15 Sep 00:37 | 2j 20m | sukses |
 | 2 (data 15 Sep) | 15 Sep 22:17 | 16 Sep 00:18 | 2j 01m | sukses |
+| 3 (data 16 Sep) | 16 Sep 22:17 | 17 Sep 00:31 | 2j 14m | sukses |
 
-Telat ± 2 jam muncul di **kedua** malam, jadi itu sifat tetap antrean cron
-GitHub, bukan insiden sekali. Tidak merusak apa pun — jadwal 22:17 UTC sudah
-≥ 1 jam setelah bel tutup, dan tabelnya tetap memakai penutupan sesi yang
-benar — tapi jangan diperlakukan sebagai anomali kalau terulang lagi.
+**Fase 1 lolos seluruh syaratnya pada 17 Sep 2026.**
+
+Telat 2j 01m–2j 20m muncul di **ketiga** malam, jadi itu sifat tetap antrean
+cron GitHub, bukan insiden sekali. Tidak merusak apa pun — jadwal 22:17 UTC
+sudah ≥ 1 jam setelah bel tutup, dan tabelnya tetap memakai penutupan sesi
+yang benar — tapi jangan diperlakukan sebagai anomali kalau terulang lagi.
+Kalau suatu saat jadwalnya digeser lebih dekat ke bel tutup, ingat bahwa
+keterlambatan segitu adalah normalnya, bukan kasus terburuk.
 
 Universe nyatanya ± 1.520, bukan 1.550: 87 dari 102 emiten Nasdaq-100
 juga anggota S&P 500.
@@ -304,8 +309,12 @@ lagi.
 
 ## Fase 4 — Rezim & skor komposit (± 2 minggu)
 
-**Dibangun**: `makro.py`, `faktor.py` versi lengkap (bobot rezim,
-momentum-crash guard), kolom `Skor`, `Status`, `Alasan`, banner rezim.
+**Dibangun**: `makro.py` (rezim, momentum-crash guard, skor komposit),
+`keputusan.py` (label status & `Alasan`), kolom `Rezim`, `Skor_Faktor`,
+`Skor`, `Status`, `Alasan`, banner rezim di dashboard, saringan `--min-skor`
+dan `--status` di `screener.py`, serta tiga skrip uji:
+`scripts/uji_sensitivitas.py`, `scripts/uji_rezim_historis.py`,
+`scripts/backtest.py`. Versi skema naik ke 4.
 
 **Selesai bila**:
 - Rezim yang dihitung ulang untuk 2008, 2009, 2020, 2022 dengan data
@@ -319,6 +328,78 @@ momentum-crash guard), kolom `Skor`, `Status`, `Alasan`, banner rezim.
 - Tabel sensitivitas: skor komposit dengan bobot ±10 poin per faktor —
   peringkat 20 besar tidak berubah > 30%. Kalau berubah lebih, skornya
   terlalu rapuh.
+
+**Hasil (16 Sep 2026)**: kodenya selesai dan teruji, tapi **fase ini tidak
+lolos**. Satu dari tiga syarat sudah bisa diperiksa dan syarat itu gagal.
+
+| Syarat | Hasil | Status |
+|---|---|---|
+| Rezim 2008/2009/2020/2022 cocok dengan sebutan analis | Belum diperiksa. `scripts/uji_rezim_historis.py` siap pakai; butuh ^GSPC dan ^VIX sejak 2007 dari Yahoo | ⏳ |
+| Backtest 2015–sekarang: return per risiko ≥ SPY | Belum diperiksa. `scripts/backtest.py` siap pakai; butuh harga harian seluruh universe sejak 2014 | ⏳ |
+| Bobot ±10 poin: peringkat 20 besar berubah ≤ 30% | **Terburuk 50%** (Risk-on, Momentum −10). Delapan dari 44 geseran melebihi 30% | ❌ |
+
+### Syarat 3 gagal, dan bobotnya tidak diutak-atik
+
+`python scripts/uji_sensitivitas.py --hanya-lolos` terhadap 1.335 emiten yang
+lolos likuiditas dan bebas flag berat di `hasil/semua.csv` (data 15 Sep):
+
+| Rezim | Geseran terburuk | Berubah | Korelasi peringkat terendah |
+|---|---|---|---|
+| Risk-on | Momentum −10 | **50%** | ρ = 0,963 |
+| Netral | Momentum +10 | **40%** | ρ = 0,954 |
+| Risk-off | Value +10 | **35%** | ρ = 0,952 |
+| Momentum-crash guard | (semua ≤ 30%) | 30% | ρ = 0,945 |
+
+Aturan fase ini melarang menggeser bobot sampai lolos, dan larangan itu
+justru paling berlaku di sini: syarat sensitivitas ada **untuk menangkap
+skor yang hasilnya ditentukan oleh angka bobot**, jadi menyetel bobot agar
+lolos berarti membuang alat ukurnya, bukan memperbaiki yang diukur.
+
+Satu pembelaan yang wajar diuji lebih dulu — dan gugur. Dugaannya: churn 20
+besar cuma efek batas, karena peringkat 20 dan 21 di antara 1.335 emiten
+praktis seri, jadi potongan yang lebih panjang mestinya jauh lebih stabil.
+Ternyata tidak: irisannya ~80% di top-100 juga, hampir sama dengan di top-20.
+Turnover ~20% merata di tiap potongan, bukan riak di perbatasan.
+
+Yang justru terbaca dari angkanya: **korelasi peringkat seluruh universe
+sangat tinggi (ρ = 0,945–0,996) sementara irisan nama teratas rendah.**
+Urutan besar-besaran stabil; yang tidak stabil adalah 10–20 nama yang
+benar-benar akan dibeli. Untuk sistem yang memegang maksimum 12 posisi,
+justru yang kedua yang menentukan hasil.
+
+`Z_SmartMoney` sekali lagi jadi kasus tersendiri: menggesernya ± 10 poin
+hampir tidak mengubah apa pun (ρ = 0,993–0,996, irisan 90–100%). Itu bukan
+kestabilan yang menenangkan — itu temuan 5 Fase 3 muncul lagi dari arah
+lain: faktor yang sebarannya 0,365 memang tidak bisa memindahkan peringkat
+berapa pun bobotnya.
+
+**Tiga pilihan untuk pemilik repo**, dan ini keputusan desain, bukan
+tambalan kode:
+
+1. **Terima dan ubah cara pakainya.** Skor dipakai sebagai penyaring
+   (misalnya "Skor ≥ 70" sebagai daftar kandidat 300-an nama), bukan sebagai
+   peringkat yang 20 besarnya dibeli. Timing Fase 5 yang memilih dari
+   kandidat itu. Ini mengakui apa yang datanya katakan tanpa menyembunyikan.
+2. **Perlebar potongan yang dianggap "hasil".** Kalau yang dipakai 50–100
+   nama teratas, irisannya ~80% dan syaratnya lewat. Tapi syarat aslinya
+   menyebut 20 besar karena itu yang mendekati portofolio nyata, jadi
+   melebarkannya harus ditulis sebagai perubahan syarat, bukan kelulusan.
+3. **Kurangi jumlah faktor.** Enam faktor dengan bobot yang berdekatan
+   membuat peringkat teratas ditentukan oleh selisih kecil. Empat faktor
+   dengan bobot yang berjauhan akan lebih tahan — tapi itu merombak Pilar 1–4,
+   dan tidak boleh diputuskan dari satu tabel sensitivitas.
+
+Sampai salah satunya dipilih, Fase 4 tetap **belum lolos** dan Fase 5 belum
+dimulai. Kolom `Skor` dan `Status` tetap dihitung dan ditampilkan — menahannya
+tidak membuat sistemnya lebih jujur, sedangkan mencatat kerapuhannya di sini
+membuatnya bisa dibaca dengan benar.
+
+**Catatan yang harus ikut ketika syarat 2 dijalankan nanti**: `backtest.py`
+sengaja hanya menguji faktor dari harga (Momentum dan Low-Vol). Quality,
+Value, dan Growth tidak punya deret waktu di repo ini — hanya snapshot
+terakhir — jadi memakainya untuk tanggal 2015 adalah look-ahead. Yang diuji
+karena itu bagian skor yang bisa diuji jujur, bukan seluruh skor, dan
+laporannya harus menyebut itu bersama survivorship bias.
 
 ## Fase 5 — Timing, SMC, uji winrate (± 2 minggu)
 
@@ -342,8 +423,13 @@ dilirik" seperti di README IDX).
 **Dimajukan sebagian (15 Sep 2026)**: dashboard, panel detail, GitHub Pages,
 dan uji dashboard sudah jalan bersama Fase 2 atas permintaan pemilik; tab
 Smart money, kelompok kolomnya, dan pewarnaan `Hari ke lapkeu` menyusul
-bersama Fase 3. Yang tersisa untuk fase ini: banner rezim, tab
-Akumulasi/Pantau, `winrate.html`, dan catatan operasional.
+bersama Fase 3. **Banner rezim ikut terbangun bersama Fase 4** (16 Sep),
+karena ia membaca blok `makro` yang baru ada di sana. Yang tersisa untuk fase
+ini: tab Akumulasi/Pantau, `winrate.html`, dan catatan operasional.
+
+Syarat kedua fase ini — sebulan penuh run otomatis — sudah berjalan
+sendirinya sejak malam pertama 14 Sep; tiga malam pertama tercatat di tabel
+Fase 1. Itu syarat yang ditunggu, bukan dikerjakan.
 
 **Selesai bila**:
 - Dashboard bisa dibuka dari HP, filter jalan, memuat < 3 detik.

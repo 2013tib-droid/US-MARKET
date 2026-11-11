@@ -10,10 +10,16 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from . import faktor, smartmoney, teknikal, valuasi
+from . import faktor, keputusan, makro, smartmoney, teknikal, valuasi
 from .harga import Panel
 
 BENCHMARK = "SPY"
+# Rezim dihitung dari indeksnya sendiri, bukan dari SPY: SPY membayar dividen
+# dan punya expense ratio, jadi jaraknya ke MA200 bergeser sedikit tiap tahun.
+# Keduanya diunduh bersama harga emiten — satu permintaan tambahan, bukan
+# sumber data baru.
+INDEKS_SPX = "^GSPC"
+INDEKS_VIX = "^VIX"
 
 # Likuiditas minimum (docs/01-metodologi.md §4).
 MIN_HARGA = 5.0
@@ -48,7 +54,7 @@ KOLOM = [
     "MA50", "MA150", "MA200", "MA200_Naik", "High52", "Low52", "ATR14", "RSI14",
     "RS_vs_SPX", "RS_HighBaru", "TrendTemplate",
     # Keputusan
-    "Flag", "Keyakinan",
+    "Flag", "Keyakinan", "Rezim", "Skor_Faktor", "Skor", "Status", "Alasan",
 ]
 
 # Rasio yang disimpan dalam persen supaya terbaca tanpa kalkulator. Kolom
@@ -71,6 +77,7 @@ PEMBULATAN = {
     "Insider_Net90H_JutaUSD": 2, "Insider_Beli90H_JutaUSD": 2, "Insider_Jual90H_JutaUSD": 2,
     "Insider_Net_PctMCap": 3, "Institusi_Pct": 1, "Institusi_Delta": 2, "Short_PctFloat": 2,
     "Short_Ratio": 1, "Z_SmartMoney": 2, "Hari_Ke_Earnings": 0,
+    "Skor_Faktor": 2, "Skor": 1,
     "DivYield": 2, "Buyback_Yield": 2, "Shareholder_Yield": 2, "Rev_YoY": 1, "Laba_YoY": 1,
     "Dilusi_YoY": 1, "MA50": 2, "MA150": 2, "MA200": 2, "High52": 2, "Low52": 2,
     "ATR14": 2, "RSI14": 1, "RS_vs_SPX": 1, "Keyakinan": 0,
@@ -106,6 +113,30 @@ def _flag(r: pd.Series, tanggal_panel: str, ada_fundamental: bool) -> list[str]:
     if r.get("_SM_Ada") == True:  # noqa: E712
         flag += smartmoney.flag_smartmoney(r)
     return flag
+
+
+def deret_indeks(panel: Panel, ticker: str) -> pd.Series | None:
+    """Penutupan satu indeks dari panel, atau None kalau tidak ikut diunduh."""
+    if ticker not in panel.tickers:
+        return None
+    df = panel.satu(ticker)
+    return df["tutup"] if len(df) else None
+
+
+def hitung_rezim(panel: Panel, tabel: pd.DataFrame, kurva: float | None = None,
+                 spread_hy: float | None = None) -> makro.Rezim | None:
+    """Rezim dari ^GSPC + ^VIX di panel, dengan breadth dari universe sendiri.
+
+    None bila SPX tidak ikut diunduh — pemanggilnya yang memutuskan apa
+    artinya, supaya run ad-hoc tiga ticker tidak mengarang rezim dari tiga
+    saham.
+    """
+    spx = deret_indeks(panel, INDEKS_SPX)
+    if spx is None or len(spx.dropna()) == 0:
+        return None
+    breadth = makro.breadth_di_atas_ma200(tabel.get("Harga"), tabel.get("MA200")) \
+        if "MA200" in tabel else None
+    return makro.tentukan(spx, deret_indeks(panel, INDEKS_VIX), breadth, kurva, spread_hy)
 
 
 def bangun(universe: pd.DataFrame, panel: Panel, fundamental: pd.DataFrame | None = None,
@@ -171,6 +202,10 @@ def bangun(universe: pd.DataFrame, panel: Panel, fundamental: pd.DataFrame | Non
     tabel["Flag"] = flags.map(";".join)
     if ada_fundamental:
         tabel["Keyakinan"] = [valuasi.keyakinan(r, f) for (_, r), f in zip(tabel.iterrows(), flags)]
+
+    # Skor dan status dihitung paling akhir: ia membaca Flag, likuiditas, dan
+    # tren, jadi semuanya harus sudah ada.
+    tabel = keputusan.hitung(tabel, hitung_rezim(panel, tabel))
 
     for kolom in KOLOM:
         if kolom not in tabel:
