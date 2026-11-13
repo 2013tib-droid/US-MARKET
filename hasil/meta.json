@@ -1,17 +1,17 @@
 {
-  "diperbarui": "2026-11-12T03:00:00Z",
-  "tanggal_data": "2026-11-11",
+  "diperbarui": "2026-11-13T02:40:27Z",
+  "tanggal_data": "2026-11-12",
   "bar_dibuang_belum_final": null,
   "bar_ditambal_dari_data_per_jam": null,
-  "sesi_final_terakhir": "2026-11-11",
+  "sesi_final_terakhir": "2026-11-12",
   "tertinggal_sesi": false,
   "versi_skema": 3,
   "fase": 3,
   "jumlah_emiten": 1517,
   "gagal_unduh": 1,
-  "faktor_terisi": 1498,
-  "lolos_likuiditas": 1432,
-  "lolos_trend_template": 321,
+  "faktor_terisi": 1499,
+  "lolos_likuiditas": 1431,
+  "lolos_trend_template": 313,
   "value_terisi": 1491,
   "quality_terisi": 1438,
   "growth_terisi": 1418,
@@ -19,5 +19,5 @@
   "cluster_buy": 59,
   "fundamental_diperbarui": "2026-11-08T02:29:46Z",
   "smartmoney_diperbarui": "2026-11-08T02:44:30Z",
-  "durasi_detik": 134.8
+  "durasi_detik": 179.4
 }
