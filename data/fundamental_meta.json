@@ -1,16 +1,16 @@
 {
-  "diperbarui": "2026-11-08T02:29:46Z",
+  "diperbarui": "2026-11-15T02:41:50Z",
   "versi_skema": 3,
   "jumlah_ticker": 1517,
-  "jumlah_cik": 1506,
+  "jumlah_cik": 1503,
   "nonkeuangan": 1258,
   "inti_terisi_nonkeuangan": {
-    "Pendapatan": 1230,
-    "Laba": 1241,
-    "OCF": 1234,
-    "Aset": 1239,
-    "Ekuitas": 1240,
-    "Saham": 1241
+    "Pendapatan": 1227,
+    "Laba": 1238,
+    "OCF": 1231,
+    "Aset": 1236,
+    "Ekuitas": 1237,
+    "Saham": 1238
   },
   "going_concern": [
     "ECHO",
@@ -18,9 +18,11 @@
     "HOG"
   ],
   "restatement": [
+    "AAON",
     "AVAV",
     "CENX",
     "GRBK",
+    "GSHD",
     "HUBG",
     "MPWR",
     "SEZL",
@@ -34,7 +36,8 @@
     "NAVI",
     "SKT",
     "SPCX",
-    "VGNT"
+    "VGNT",
+    "VYLR"
   ],
-  "durasi_detik": 202.4
+  "durasi_detik": 199.2
 }

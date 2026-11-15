@@ -1,81 +1,86 @@
 {
-  "diperbarui": "2026-11-08T02:44:30Z",
+  "diperbarui": "2026-11-15T02:54:54Z",
   "versi_skema": 3,
   "jumlah_ticker": 1517,
   "jendela_insider_hari": 90,
   "form4": {
-    "filing_baru": 3840,
-    "transaksi_baru": 2976,
+    "filing_baru": 3619,
+    "transaksi_baru": 2627,
     "gagal_daftar_cik": 0,
     "gagal_dokumen": 0
   },
-  "transaksi_disimpan": 46315,
-  "emiten_ada_transaksi_90h": 792,
+  "transaksi_disimpan": 48849,
+  "emiten_ada_transaksi_90h": 781,
   "cluster_buy": [
     "AAON",
     "ACN",
     "ADC",
-    "AMH",
+    "ALNY",
     "AMR",
     "AN",
-    "APTV",
     "BA",
     "BBT",
     "BXMT",
+    "CAT",
     "CAVA",
     "CBU",
-    "CC",
-    "CE",
     "CELH",
+    "COHR",
     "COO",
+    "CRH",
     "CROX",
     "DFH",
     "DKS",
     "DY",
+    "EGBN",
     "ELAN",
     "ENOV",
     "ENPH",
     "FBRT",
     "FFIN",
     "FUL",
+    "FUN",
     "GME",
     "GO",
     "HBAN",
     "HGV",
-    "HOG",
     "HWKN",
     "JBLU",
-    "KMPR",
+    "KGS",
     "KMT",
     "KRMN",
     "LBRT",
     "LKQ",
     "LRN",
-    "MATW",
+    "LUMN",
+    "MCY",
+    "MP",
     "MSM",
     "MTDR",
+    "NXRT",
     "PNFP",
     "PRLB",
     "RBA",
-    "REZI",
     "ROL",
     "SEZL",
     "SHEN",
     "SPG",
     "STC",
+    "STRA",
+    "STWD",
     "TBBK",
     "THRM",
-    "TNC",
     "TPL",
     "TTMI",
     "UBER",
     "UMBF",
-    "UPBD"
+    "UPBD",
+    "WCC"
   ],
   "insider_beli_terbesar": [
     [
       "RSG",
-      1379.49
+      1160.82
     ],
     [
       "LEN",
@@ -99,7 +104,7 @@
     ],
     [
       "LRN",
-      31.48
+      39.59
     ],
     [
       "MSM",
@@ -110,18 +115,14 @@
       26.89
     ],
     [
-      "INTC",
-      19.71
+      "FUN",
+      24.31
     ]
   ],
   "insider_jual_terbesar": [
     [
       "FANG",
-      -3749.64
-    ],
-    [
-      "LTH",
-      -1060.88
+      -3748.01
     ],
     [
       "DELL",
@@ -132,35 +133,39 @@
       -946.63
     ],
     [
-      "CRWV",
-      -542.81
+      "LTH",
+      -555.85
     ],
     [
-      "CRBG",
-      -491.37
-    ],
-    [
-      "LFST",
-      -377.79
+      "ILMN",
+      -415.65
     ],
     [
       "TALO",
       -356.45
     ],
     [
-      "ILMN",
-      -354.56
+      "FA",
+      -324.0
     ],
     [
-      "FA",
-      -275.19
+      "RCL",
+      -304.81
+    ],
+    [
+      "SYK",
+      -297.12
+    ],
+    [
+      "LFST",
+      -228.85
     ]
   ],
-  "institusi_terisi": 1101,
-  "short_terisi": 1095,
-  "target_terisi": 1093,
-  "target_revisi_terisi": 1088,
-  "earnings_terisi": 455,
-  "yahoo_gagal": 0,
-  "durasi_detik": 883.5
+  "institusi_terisi": 1097,
+  "short_terisi": 1091,
+  "target_terisi": 1088,
+  "target_revisi_terisi": 1084,
+  "earnings_terisi": 445,
+  "yahoo_gagal": 176,
+  "durasi_detik": 783.5
 }
