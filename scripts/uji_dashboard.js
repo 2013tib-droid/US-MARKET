@@ -64,7 +64,7 @@ const konteks = {
 };
 vm.createContext(konteks);
 // muat() dipanggil di akhir skrip; fungsi lain diekspos untuk diuji.
-vm.runInContext(cocok[1] + "\nglobalThis.__uji = { state, pilihTab, bukaDetail, tutupDetail, render, KOLOM, KELOMPOK };",
+vm.runInContext(cocok[1] + "\nglobalThis.__uji = { state, pilihTab, bukaDetail, tutupDetail, render, tulisRezim, KOLOM, KELOMPOK };",
                 konteks, { filename: "dashboard.js" });
 
 let gagal = 0;
@@ -84,6 +84,7 @@ setTimeout(() => {
   periksa(!u.state.gagal, "dashboard gagal memuat data");
   periksa((u.state.data.semua || []).length > 1000, `semua.csv hanya ${(u.state.data.semua || []).length} baris`);
 
+  const el = (id) => elemen[id] || { hidden: true };
   const kurang = u.KOLOM.map(k => k.k).filter(k => !u.state.kolomAda.has(k));
   if (kurang.length) console.log(`Info: ${kurang.length} kolom dashboard tidak ada di CSV ini (tampil "–"): ${kurang.join(", ")}`);
 
@@ -108,6 +109,26 @@ setTimeout(() => {
     u.tutupDetail();
   }
   periksa((simpan["pembaruan:teks"] || "").length > 0, "teks waktu pembaruan kosong");
+
+  // Banner rezim (Fase 4). meta.json di repo boleh belum punya blok "makro"
+  // — dashboard harus diam, bukan menampilkan banner kosong — tapi begitu
+  // bloknya ada, isinya wajib muncul lengkap dengan bobotnya.
+  u.tulisRezim(null);
+  periksa(el("rezim").hidden, "banner rezim tampil padahal meta tanpa blok makro");
+  u.tulisRezim({
+    rezim: "Momentum-crash guard", guard_aktif: true,
+    alasan: ["pantulan setelah jatuh ≥ 20% (terpicu 2020-04-17)"],
+    konteks: ["Breadth 22% di atas MA200 — oversold"],
+    bobot: { Quality: 30, Momentum: 10, Value: 30, Growth: 10, SmartMoney: 15, LowVol: 5 },
+  });
+  const banner = simpan.rezim || "";
+  periksa(!el("rezim").hidden, "banner rezim tersembunyi padahal metanya ada");
+  periksa(banner.includes("Momentum-crash guard"), "banner rezim tidak menyebut nama rezimnya");
+  periksa(banner.includes("Momentum 10"), "banner rezim tidak menyebut bobotnya");
+  periksa(banner.includes("Breadth"), "banner rezim tidak menyebut konteksnya");
+  // Bobot nol tidak ditampilkan di rezim lain; di sini LowVol 5 harus ada.
+  periksa(banner.includes("LowVol 5"), "banner rezim membuang bobot yang bukan nol");
+  bersih(banner, "banner rezim");
 
   console.log(gagal ? `${gagal} pemeriksaan gagal.` : "Dashboard lolos semua pemeriksaan.");
   process.exit(gagal ? 1 : 0);

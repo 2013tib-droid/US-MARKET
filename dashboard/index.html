@@ -86,6 +86,19 @@
   .titik { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%;
            background: var(--pos-fg); vertical-align: middle; }
   .titik.basi { background: var(--warn-fg); }
+  /* Banner rezim: bobot faktor malam ini. Warnanya mengikuti rezim supaya
+     perubahan terlihat sebelum tulisannya dibaca. */
+  .rezim { margin: .6rem 0 0; padding: .55rem .7rem; border-radius: 6px;
+           border-left: 4px solid var(--text-muted); background: var(--surface-raised);
+           border-top: 1px solid var(--border-soft); border-right: 1px solid var(--border-soft);
+           border-bottom: 1px solid var(--border-soft);
+           font-size: .88rem; line-height: 1.5; }
+  .rezim.on { border-left-color: var(--pos-fg); }
+  .rezim.off { border-left-color: var(--neg-fg); }
+  .rezim.guard { border-left-color: var(--warn-fg); }
+  .rezim b { font-weight: 600; }
+  .rezim .bobot, .rezim .konteks { color: var(--text-secondary); }
+  .rezim .konteks { display: block; margin-top: .2rem; }
   .catatan-atas { margin: 12px 0 0; font-size: .8rem; color: var(--text-muted); }
 
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; margin: 20px 0; }
@@ -276,6 +289,9 @@
   <header>
     <h1><span class="ikon">🗽</span>US Market Screener</h1>
     <p><span class="titik" id="titik"></span><span id="pembaruan">Memuat data …</span></p>
+    <!-- Banner rezim (Fase 4): bobot faktor malam ini dan sebabnya. Kosong
+         sampai meta.json punya blok "makro", supaya CSV lama tetap terbaca. -->
+    <div id="rezim" class="rezim" hidden></div>
     <!-- docs/ dibangkitkan dari docs/*.md oleh scripts/susun_situs.py saat
          situs disusun. Membuka berkas ini langsung dari repo tidak punya
          folder itu; di situs Pages ada. -->
@@ -995,6 +1011,30 @@ function tulisPembaruan() {
   // (akhir pekan panjang paling lama 3 hari).
   const umur = (Date.now() - new Date(m.diperbarui).getTime()) / 864e5;
   if (umur > 4) document.getElementById("titik").classList.add("basi");
+  tulisRezim(m.makro);
+}
+
+// Kelas CSS per rezim. Nama rezim datang dari usmarket/makro.py; yang tidak
+// dikenal tetap tampil, hanya tanpa warna — lebih baik daripada hilang.
+const KELAS_REZIM = { "Risk-on": "on", "Risk-off": "off", "Momentum-crash guard": "guard" };
+
+function tulisRezim(mk) {
+  const el = document.getElementById("rezim");
+  // meta.json dari sebelum Fase 4 tidak punya blok ini.
+  if (!mk || !mk.rezim) { el.hidden = true; return; }
+  el.hidden = false;
+  el.className = "rezim " + (KELAS_REZIM[mk.rezim] || "");
+  const bobot = Object.entries(mk.bobot || {})
+    .filter(([, b]) => b > 0)
+    .map(([f, b]) => `${f} ${b}`)
+    .join(" · ");
+  const alasan = (mk.alasan || []).join("; ");
+  const konteks = (mk.konteks || []).join(" · ");
+  let h = `<b>Rezim ${esc(mk.rezim)}</b>`;
+  if (alasan) h += ` — ${esc(alasan)}`;
+  if (bobot) h += ` <span class="bobot">· bobot ${esc(bobot)}</span>`;
+  if (konteks) h += `<span class="konteks">${esc(konteks)}</span>`;
+  el.innerHTML = h;
 }
 
 async function ambilCSV(nama, wajib) {

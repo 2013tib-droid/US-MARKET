@@ -121,11 +121,26 @@ Dikelompokkan supaya dashboard bisa menyembunyikan grup yang tidak dibutuhkan.
 
 **Teknikal**: `MA50`, `MA150`, `MA200`, `MA200_Naik`, `High52`, `Low52`, `RS_vs_SPX`, `RS_HighBaru`, `ATR14`, `RSI14`, `TrendTemplate`
 
-**Skor & keputusan**: `Rezim`, `Skor`, `Status`, `Flag`, `Keyakinan`, `Alasan`
+**Skor & keputusan** (Fase 4): `Rezim`, `Skor_Faktor`, `Skor`, `Status`, `Flag`, `Keyakinan`, `Alasan`
+
+`Skor_Faktor` adalah Σ (bobot_rezim × z_faktor), dinormalisasi ke bobot
+faktor yang benar-benar terisi — emiten yang satu faktornya kosong tidak
+dihukum seolah faktor itu bernilai nol. `Skor` adalah peringkat persentil
+`Skor_Faktor` di universe (0–100); persentil, bukan nilai mentahnya, supaya
+ambang 70 di label status berarti hal yang sama tiap malam.
 
 `Alasan` adalah kalimat pendek yang menjelaskan status ("Skor 82, tren
 lolos, insider cluster buy 3 orang") — supaya dashboard tidak perlu
-menerjemahkan angka.
+menerjemahkan angka. Faktor yang disebut sebagai kekuatan hanya diambil dari
+faktor yang berbobot di rezim malam itu: menyebut Low-Vol sebagai kekuatan di
+rezim risk-on menyesatkan, bobotnya nol di sana.
+
+**Peringatan membaca `Skor`**: uji sensitivitas Fase 4 gagal — menggeser satu
+bobot ± 10 poin mengubah sampai 50% isi 20 besar, sementara korelasi peringkat
+seluruh universe tetap ρ ≥ 0,945. Artinya urutan besar-besaran dapat
+diandalkan, tapi *nama* di puncak tidak. Perlakukan `Skor` sebagai penyaring
+kandidat, bukan sebagai daftar beli berperingkat. Rinciannya di
+[04 §Fase 4](04-roadmap.md#fase-4-rezim-skor-komposit-2-minggu).
 
 ## 5. Red flag (kolom `Flag`, dipisah `;`)
 
