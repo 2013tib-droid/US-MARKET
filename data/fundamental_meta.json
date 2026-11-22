@@ -1,16 +1,16 @@
 {
-  "diperbarui": "2026-11-15T02:41:50Z",
-  "versi_skema": 3,
+  "diperbarui": "2026-11-22T03:11:17Z",
+  "versi_skema": 4,
   "jumlah_ticker": 1517,
-  "jumlah_cik": 1503,
-  "nonkeuangan": 1258,
+  "jumlah_cik": 1502,
+  "nonkeuangan": 1257,
   "inti_terisi_nonkeuangan": {
-    "Pendapatan": 1227,
-    "Laba": 1238,
-    "OCF": 1231,
-    "Aset": 1236,
-    "Ekuitas": 1237,
-    "Saham": 1238
+    "Pendapatan": 1225,
+    "Laba": 1236,
+    "OCF": 1229,
+    "Aset": 1234,
+    "Ekuitas": 1235,
+    "Saham": 1236
   },
   "going_concern": [
     "ECHO",
@@ -39,5 +39,5 @@
     "VGNT",
     "VYLR"
   ],
-  "durasi_detik": 199.2
+  "durasi_detik": 195.7
 }

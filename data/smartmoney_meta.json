@@ -1,47 +1,52 @@
 {
-  "diperbarui": "2026-11-15T02:54:54Z",
-  "versi_skema": 3,
+  "diperbarui": "2026-11-22T03:27:04Z",
+  "versi_skema": 4,
   "jumlah_ticker": 1517,
   "jendela_insider_hari": 90,
   "form4": {
-    "filing_baru": 3619,
-    "transaksi_baru": 2627,
+    "filing_baru": 4060,
+    "transaksi_baru": 3612,
     "gagal_daftar_cik": 0,
     "gagal_dokumen": 0
   },
-  "transaksi_disimpan": 48849,
-  "emiten_ada_transaksi_90h": 781,
+  "transaksi_disimpan": 52319,
+  "emiten_ada_transaksi_90h": 779,
   "cluster_buy": [
     "AAON",
     "ACN",
     "ADC",
+    "ADIG",
     "ALNY",
-    "AMR",
     "AN",
+    "ARR",
     "BA",
     "BBT",
+    "BFH",
     "BXMT",
+    "CACC",
     "CAT",
     "CAVA",
     "CBU",
     "CELH",
     "COHR",
     "COO",
+    "CRC",
     "CRH",
     "CROX",
+    "CTVA",
     "DFH",
     "DKS",
     "DY",
+    "EFC",
     "EGBN",
-    "ELAN",
     "ENOV",
     "ENPH",
+    "ETN",
     "FBRT",
     "FFIN",
     "FUL",
     "FUN",
     "GME",
-    "GO",
     "HBAN",
     "HGV",
     "HWKN",
@@ -62,7 +67,7 @@
     "PRLB",
     "RBA",
     "ROL",
-    "SEZL",
+    "SEI",
     "SHEN",
     "SPG",
     "STC",
@@ -71,6 +76,7 @@
     "TBBK",
     "THRM",
     "TPL",
+    "TRST",
     "TTMI",
     "UBER",
     "UMBF",
@@ -80,7 +86,7 @@
   "insider_beli_terbesar": [
     [
       "RSG",
-      1160.82
+      944.79
     ],
     [
       "LEN",
@@ -107,22 +113,26 @@
       39.59
     ],
     [
+      "FUN",
+      30.67
+    ],
+    [
       "MSM",
       29.03
     ],
     [
       "SIRI",
       26.89
-    ],
-    [
-      "FUN",
-      24.31
     ]
   ],
   "insider_jual_terbesar": [
     [
       "FANG",
-      -3748.01
+      -3744.92
+    ],
+    [
+      "ITGR",
+      -1212.6
     ],
     [
       "DELL",
@@ -133,39 +143,35 @@
       -946.63
     ],
     [
-      "LTH",
-      -555.85
+      "LFST",
+      -717.69
     ],
     [
-      "ILMN",
-      -415.65
+      "CHYM",
+      -570.99
+    ],
+    [
+      "LTH",
+      -555.85
     ],
     [
       "TALO",
       -356.45
     ],
     [
-      "FA",
-      -324.0
-    ],
-    [
       "RCL",
-      -304.81
+      -333.23
     ],
     [
-      "SYK",
-      -297.12
-    ],
-    [
-      "LFST",
-      -228.85
+      "FA",
+      -324.59
     ]
   ],
-  "institusi_terisi": 1097,
-  "short_terisi": 1091,
-  "target_terisi": 1088,
-  "target_revisi_terisi": 1084,
-  "earnings_terisi": 445,
-  "yahoo_gagal": 176,
-  "durasi_detik": 783.5
+  "institusi_terisi": 1155,
+  "short_terisi": 1149,
+  "target_terisi": 1145,
+  "target_revisi_terisi": 1139,
+  "earnings_terisi": 1024,
+  "yahoo_gagal": 360,
+  "durasi_detik": 946.6
 }
