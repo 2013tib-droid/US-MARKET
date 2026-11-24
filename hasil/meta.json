@@ -1,37 +1,37 @@
 {
-  "diperbarui": "2026-11-21T03:15:07Z",
-  "tanggal_data": "2026-11-20",
+  "diperbarui": "2026-11-24T06:02:04Z",
+  "tanggal_data": "2026-11-23",
   "bar_dibuang_belum_final": null,
   "bar_ditambal_dari_data_per_jam": null,
-  "sesi_final_terakhir": "2026-11-20",
+  "sesi_final_terakhir": "2026-11-23",
   "tertinggal_sesi": false,
   "versi_skema": 4,
   "fase": 4,
   "jumlah_emiten": 1517,
-  "gagal_unduh": 1,
+  "gagal_unduh": 2,
   "faktor_terisi": 1497,
-  "lolos_likuiditas": 1418,
-  "lolos_trend_template": 180,
+  "lolos_likuiditas": 1422,
+  "lolos_trend_template": 235,
   "value_terisi": 1488,
   "quality_terisi": 1435,
-  "growth_terisi": 1415,
-  "smartmoney_terisi": 1515,
-  "cluster_buy": 64,
+  "growth_terisi": 1432,
+  "smartmoney_terisi": 1517,
+  "cluster_buy": 70,
   "makro": {
     "rezim": "Risk-off",
     "guard_aktif": false,
     "alasan": [
-      "SPX 6,910 di bawah MA200 7,349",
-      "VIX 35.9 > 25 (panik)"
+      "SPX 7,237 di bawah MA200 7,350",
+      "VIX 26.6 > 25"
     ],
     "konteks": [
-      "Breadth 40% di atas MA200"
+      "Breadth 46% di atas MA200"
     ],
-    "spx": 6910.39013671875,
-    "spx_ma50": 7625.25640625,
-    "spx_ma200": 7348.5803125,
-    "vix": 35.88999938964844,
-    "breadth_pct_di_atas_ma200": 40.25367156208278,
+    "spx": 7237.169921875,
+    "spx_ma50": 7617.600205078125,
+    "spx_ma200": 7350.104663085937,
+    "vix": 26.6200008392334,
+    "breadth_pct_di_atas_ma200": 45.92790387182911,
     "kurva_10y2y": null,
     "spread_hy": null,
     "bobot": {
@@ -45,14 +45,14 @@
   },
   "skor_terisi": 1517,
   "status": {
-    "KURANGI": 753,
-    "PANTAU": 340,
-    "HINDARI": 205,
-    "TAHAN": 124,
-    "AKUMULASI": 80,
-    "TUNGGU-LAPKEU": 15
+    "KURANGI": 729,
+    "PANTAU": 313,
+    "HINDARI": 204,
+    "TAHAN": 145,
+    "AKUMULASI": 108,
+    "TUNGGU-LAPKEU": 18
   },
-  "fundamental_diperbarui": "2026-11-15T02:41:50Z",
-  "smartmoney_diperbarui": "2026-11-15T02:54:54Z",
-  "durasi_detik": 168.9
+  "fundamental_diperbarui": "2026-11-22T03:11:17Z",
+  "smartmoney_diperbarui": "2026-11-22T03:27:04Z",
+  "durasi_detik": 105.7
 }
