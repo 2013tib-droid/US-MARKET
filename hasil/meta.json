@@ -1,17 +1,17 @@
 {
-  "diperbarui": "2026-11-24T06:02:04Z",
-  "tanggal_data": "2026-11-23",
+  "diperbarui": "2026-11-25T04:55:57Z",
+  "tanggal_data": "2026-11-24",
   "bar_dibuang_belum_final": null,
   "bar_ditambal_dari_data_per_jam": null,
-  "sesi_final_terakhir": "2026-11-23",
+  "sesi_final_terakhir": "2026-11-24",
   "tertinggal_sesi": false,
   "versi_skema": 4,
   "fase": 4,
   "jumlah_emiten": 1517,
-  "gagal_unduh": 2,
-  "faktor_terisi": 1497,
-  "lolos_likuiditas": 1422,
-  "lolos_trend_template": 235,
+  "gagal_unduh": 1,
+  "faktor_terisi": 1496,
+  "lolos_likuiditas": 1425,
+  "lolos_trend_template": 249,
   "value_terisi": 1488,
   "quality_terisi": 1435,
   "growth_terisi": 1432,
@@ -21,17 +21,17 @@
     "rezim": "Risk-off",
     "guard_aktif": false,
     "alasan": [
-      "SPX 7,237 di bawah MA200 7,350",
-      "VIX 26.6 > 25"
+      "SPX 7,201 di bawah MA200 7,351",
+      "VIX 26.4 > 25"
     ],
     "konteks": [
-      "Breadth 46% di atas MA200"
+      "Breadth 47% di atas MA200"
     ],
-    "spx": 7237.169921875,
-    "spx_ma50": 7617.600205078125,
-    "spx_ma200": 7350.104663085937,
-    "vix": 26.6200008392334,
-    "breadth_pct_di_atas_ma200": 45.92790387182911,
+    "spx": 7201.08984375,
+    "spx_ma50": 7609.90740234375,
+    "spx_ma200": 7351.286013183594,
+    "vix": 26.360000610351562,
+    "breadth_pct_di_atas_ma200": 47.36138944555778,
     "kurva_10y2y": null,
     "spread_hy": null,
     "bobot": {
@@ -45,14 +45,14 @@
   },
   "skor_terisi": 1517,
   "status": {
-    "KURANGI": 729,
-    "PANTAU": 313,
-    "HINDARI": 204,
+    "KURANGI": 730,
+    "PANTAU": 310,
+    "HINDARI": 202,
     "TAHAN": 145,
-    "AKUMULASI": 108,
-    "TUNGGU-LAPKEU": 18
+    "AKUMULASI": 110,
+    "TUNGGU-LAPKEU": 20
   },
   "fundamental_diperbarui": "2026-11-22T03:11:17Z",
   "smartmoney_diperbarui": "2026-11-22T03:27:04Z",
-  "durasi_detik": 105.7
+  "durasi_detik": 125.4
 }
